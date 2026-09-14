@@ -1,0 +1,14 @@
+# Versiones reales instaladas y verificadas en .venv (Python 3.9.6, macOS arm64).
+# OJO: mediapipe 1.0.1 esta roto en macOS arm64 (el wheel entra por el path
+# Metal y aborta al crear el PoseLandmarker). 1.0.0 es la ultima que funciona.
+mediapipe==1.0.0
+opencv-python==5.0.0.93
+numpy==2.0.2
+pandas==2.3.3
+matplotlib==3.9.4
+jupyterlab==4.5.10
+
+# --- desarrollo (no hace falta para ejecutar el pipeline) ---
+# pip install -r requirements.txt instala tambien esto; para un entorno de
+# solo ejecucion, borra esta seccion.
+pytest==8.4.2
