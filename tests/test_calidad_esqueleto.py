@@ -8,6 +8,7 @@ inversiones de cuerpo entero) y se comprueba que se detectan y se corrigen.
 """
 
 import numpy as np
+import pytest
 
 import corregir_esqueleto as ce
 import evaluar_esqueleto as ev
@@ -278,3 +279,66 @@ def test_estado_segun_rango():
 def test_metrica_de_brazo_no_se_compara_a_30_fps():
     filas = ac.comparar({"codo_impacto": 150.0}, referencias_sinteticas(), "derecha", "lateral", 30)
     assert "no comparable" in filas[0]["estado"]
+
+
+def test_angulo_fuera_del_plano_va_de_0_a_180_con_el_signo():
+    # hombros de espaldas (izq. a la izq.), de perfil y de frente; ancho real 0.8 torsos
+    a = np.zeros((3, 2))
+    b = np.array([[0.8, 0], [0.0, 0], [-0.8, 0]])
+    assert np.allclose(mg.angulo_fuera_del_plano(a, b, np.ones(3)), [0, 90, 180])
+
+
+def test_angulo_fuera_del_plano_sin_datos_es_nan():
+    a = np.full((3, 2), np.nan)
+    assert np.isnan(mg.angulo_fuera_del_plano(a, a, np.ones(3))).all()
+
+
+def test_hasta_el_extremo_para_cuando_baja_mas_que_la_histeresis():
+    v = np.array([0, 1, 2, 1.9, 3, 4, 3.5, 2, 5.0])   # el 1.9 es ruido; el 5 ya es otro gesto
+    assert mg.hasta_el_extremo(v, 0, +1, histeresis=1.0) == 5
+
+
+def test_hasta_el_extremo_hacia_atras_y_saltando_nan():
+    v = np.array([0, 3, np.nan, 2, 1, 0.0])
+    assert mg.hasta_el_extremo(v, 5, -1, histeresis=1.0) == 1
+    assert mg.hasta_el_extremo(np.full(4, np.nan), 0, +1, histeresis=1.0) is None
+
+
+def serie_de_golpe(n=40, t=20):
+    """Golpe sintetico: la muneca barre de -x a +x respecto a la cadera hasta
+    el impacto t y luego sube hasta 1.5 hombros; los hombros giran 120 grados."""
+    x = np.linspace(-1, 1, n)
+    altura = np.r_[np.full(t, 0.5), np.linspace(0.5, 1.5, 10), np.linspace(1.5, 0.5, n - t - 10)]
+    giro = np.r_[np.linspace(60, 20, 10), np.linspace(20, 140, n - 10)]
+    return {"muneca": np.column_stack([x, np.zeros(n)]), "cadera": np.zeros((n, 2)),
+            "pies": np.column_stack([np.full(n, -0.2), np.zeros(n)]), "torso": np.ones(n),
+            "altura": altura, "hombros_giro": giro}
+
+
+def test_direccion_y_peso_delante_siguen_al_golpe():
+    s = serie_de_golpe()
+    assert mg.direccion_golpe(s, 20) == 1
+    assert np.isclose(mg.peso_delante(s, 20), 0.2)       # cadera 0.2 por delante de los pies
+    s["muneca"][:, 0] *= -1                                # mismo golpe hacia el otro lado
+    assert mg.direccion_golpe(s, 20) == -1
+    assert np.isclose(mg.peso_delante(s, 20), -0.2)
+
+
+def test_terminacion_y_giro_del_golpe_sintetico():
+    s = serie_de_golpe()
+    altura, fin = mg.terminacion(s, 20)
+    assert altura == pytest.approx(1.5, abs=0.12) and 27 <= fin <= 31
+    # de la maxima torsion (20 grados, frame 9) a la terminacion; el suavizado
+    # redondea el pico en V de la serie sintetica y le quita unos grados
+    assert mg.giro_hombros(s, 20, fin) == pytest.approx(s["hombros_giro"][fin] - 20, abs=6)
+
+
+def test_validacion_dejando_fuera_a_cada_jugador():
+    import validar_comparacion as vc
+    ref = referencias_sinteticas()
+    ref = pd.concat([ref, ref[ref["jugador"] == "j1"].assign(jugador="j4", clip="c4")])
+    t = vc.dejar_uno_fuera(ref, fps=30)
+    assert set(t["jugador"]) == {"j0", "j1", "j2", "j3", "j4"}
+    # los extremos (j0 y j3) quedan fuera del rango de los demas; los del medio, dentro
+    assert t.set_index("jugador")["dentro"].to_dict() == {
+        "j0": False, "j1": True, "j2": True, "j3": False, "j4": True}

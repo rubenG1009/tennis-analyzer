@@ -273,3 +273,25 @@ no dice nada del brazo, el texto tampoco. Es deliberado, la parte que aporta el
 LLM es la explicación, no la medida. El verificador de cifras solo avisa; no
 detecta afirmaciones cualitativas inventadas, para eso hay que leer el informe.
 
+---
+
+## 2026-10-12 — Métricas del gesto relativas al cuerpo y delimitadas por extremos
+
+**Contexto.** Las métricas nuevas (terminación, giro de hombros, peso delante)
+miran fuera del instante del impacto: antes y después. Hacía falta decidir
+respecto a qué medirlas y dónde empieza y acaba el gesto.
+
+**Decisión.** Todo relativo al propio cuerpo (cadera respecto a pies, muñeca
+respecto a cadera, hombros entre sí), nunca posiciones absolutas en la imagen.
+El gesto se delimita buscando extremos desde el impacto con histéresis
+(`hasta_el_extremo`): hacia delante hasta que la muñeca deja de subir, hacia
+atrás hasta que los hombros dejan de alejarse de su orientación en el impacto.
+No se usa la duración deducida de la velocidad de la muñeca.
+
+**Consecuencia.** Vale con cámara que sigue al jugador y con cualquier
+velocidad de vídeo, incluida la cámara lenta editada con rampas, donde la
+duración por velocidad fallaba. Terminación y giro no cambian nada con ±3
+frames de error en el impacto. A cambio, si el jugador encadena dos golpes sin
+pausa la búsqueda podría pasar de uno a otro; la histéresis (0,15 de altura,
+15° de giro) lo evita en todos los golpes de referencia.
+

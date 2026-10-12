@@ -147,6 +147,13 @@ Cómo grabar para que sirva:
 
 Qué se compara y con qué fiabilidad está en [docs/hallazgos.md](docs/hallazgos.md).
 
+Para comprobar que la comparación no le saca fallos a un profesional, se
+analiza a cada uno como si fuera un usuario, dejándolo fuera de las referencias:
+
+```bash
+python scripts/validar_comparacion.py --fps 30
+```
+
 ## Informe en lenguaje natural
 
 ```bash

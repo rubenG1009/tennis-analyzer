@@ -25,6 +25,19 @@ Solo fondo:
                      (negativo = tarde). "Delante" es hacia donde mira la
                      cabeza (nariz respecto al punto medio de las orejas): en
                      el impacto el jugador mira la bola. Solo vista lateral.
+  terminacion        altura maxima de la muneca despues del impacto (misma
+                     escala que altura_impacto: 1 = hombros). Mide si el golpe
+                     termina arriba o se queda corto.
+  giro_hombros       amplitud del giro de hombros en todo el gesto, en grados:
+                     de la maxima torsion en la preparacion a la terminacion.
+                     Ver angulo_fuera_del_plano.
+  peso_delante       cadera respecto al punto medio de los pies en el impacto,
+                     en torsos, hacia donde va el golpe (positivo = el peso
+                     va hacia delante). Solo vista lateral.
+
+Las tres ultimas se miden respecto al propio cuerpo y no respecto a la imagen
+porque en los clips de referencia la camara sigue al jugador: cualquier
+desplazamiento absoluto (cuanto avanza la cadera) mezcla jugador y camara.
 
 Solo saque:
   alcance            muneca por encima de la nariz, en torsos
@@ -57,7 +70,11 @@ FRACCION_INICIO_GESTO = 0.2  # el gesto empieza cuando la muneca va a menos de e
 MAX_VENTANA_CARGA = 400    # frames; tope por si la muneca nunca se para
 UMBRAL_VIS = 0.5
 METRICAS_FONDO = ["codo_impacto", "rodilla_min", "tronco_impacto", "altura_impacto",
-                  "ancho_apoyos", "impacto_delante"]
+                  "ancho_apoyos", "impacto_delante", "terminacion", "giro_hombros",
+                  "peso_delante"]
+PERCENTIL_ANCHO_REAL = 95  # el ancho de hombros sin escorzo, sobre todo el clip
+HISTERESIS_TERMINACION = 0.15  # cuanto baja la muneca para dar el golpe por terminado
+HISTERESIS_GIRO = 15.0         # grados que vuelven los hombros para dar la torsion por maxima
 METRICAS_SAQUE = ["codo_impacto", "rodilla_min", "tronco_impacto", "alcance"]
 
 
@@ -75,6 +92,26 @@ def inclinacion(abajo, arriba):
     """
     d = arriba - abajo
     return np.degrees(np.arctan2(np.abs(d[:, 0]), -d[:, 1]))
+
+
+def angulo_fuera_del_plano(a, b, torso):
+    """Orientacion de la linea a->b respecto al plano de la imagen, 0-180 grados.
+
+    Con una sola camara el giro de los hombros alrededor del eje vertical solo
+    se ve como escorzo: la linea entre hombros se acorta al girar hacia la
+    camara. Su componente horizontal con signo, dividida por el ancho real,
+    es el coseno del angulo: 0 = de espaldas a camara, 90 = de perfil,
+    180 = de frente (o al reves segun el lado de la camara). El signo exige
+    que izquierda y derecha esten bien, que es lo que garantiza
+    corregir_esqueleto. El ancho real es el percentil PERCENTIL_ANCHO_REAL del
+    clip: en cada derecha hay un momento con los hombros paralelos a la
+    imagen. Funcion pura.
+    """
+    d = (b[:, 0] - a[:, 0]) / torso
+    if not np.isfinite(d).any():
+        return np.full(len(d), np.nan)
+    real = np.nanpercentile(np.abs(d), PERCENTIL_ANCHO_REAL)
+    return np.degrees(np.arccos(np.clip(d / real, -1, 1)))
 
 
 def series(xy, lado):
@@ -99,6 +136,8 @@ def series(xy, lado):
         "mirada": np.sign(xy["nose"][:, 0] - punto_medio(xy["left_ear"], xy["right_ear"])[:, 0]),
         "velocidad": np.r_[np.nan, np.linalg.norm(np.diff(
             (muneca - cadera) / torso[:, None], axis=0), axis=1)],
+        "hombros_giro": angulo_fuera_del_plano(xy["left_shoulder"], xy["right_shoulder"], torso),
+        "pies": punto_medio(xy["left_ankle"], xy["right_ankle"]),
         "muneca": muneca,
         "cadera": cadera,
     }
@@ -119,6 +158,72 @@ def impacto_delante(s, t, k=SUAVIZADO):
         return np.nan
     rel = (s["muneca"][a:b, 0] - s["cadera"][a:b, 0]) * mirada / s["torso"][a:b]
     return float(np.nanmedian(rel))
+
+
+def direccion_golpe(s, t, k=SUAVIZADO):
+    """+1 o -1 segun hacia donde va la muneca (respecto a la cadera) en el
+    impacto, en x de imagen; NaN si no se ve. A diferencia de la mirada, no
+    depende de la cara, que de espaldas o de perfil es ruidosa. Funcion pura."""
+    rel = s["muneca"][:, 0] - s["cadera"][:, 0]
+    antes, despues = rel[max(t - k - 1, 0):t], rel[t + 1:t + k + 2]
+    if not (np.isfinite(antes).any() and np.isfinite(despues).any()):
+        return np.nan
+    return float(np.sign(np.nanmean(despues) - np.nanmean(antes))) or np.nan
+
+
+def peso_delante(s, t, k=SUAVIZADO):
+    """Cadera menos punto medio de los pies, en torsos, en la direccion del golpe."""
+    sentido = direccion_golpe(s, t, k)
+    if np.isnan(sentido):
+        return np.nan
+    a, b = max(t - k, 0), min(t + k + 1, len(s["torso"]))
+    rel = (s["cadera"][a:b, 0] - s["pies"][a:b, 0]) * sentido / s["torso"][a:b]
+    return float(np.nanmedian(rel)) if np.isfinite(rel).any() else np.nan
+
+
+def hasta_el_extremo(v, t, paso, histeresis, tope=MAX_VENTANA_CARGA):
+    """Recorre v desde t en la direccion `paso` (+1 o -1) mientras siga
+    creciendo, y devuelve el indice del maximo. Para cuando v cae `histeresis`
+    por debajo del maximo visto, al llegar al borde o tras `tope` frames; los
+    NaN se saltan. Funcion pura.
+
+    Sirve para encontrar la terminacion y la maxima torsion sin suponer cuanto
+    dura el gesto: en camara lenta editada (con rampas de velocidad) la
+    duracion que se deduce de la velocidad de la muneca no vale, y aqui no
+    hace falta.
+    """
+    mejor, i_mejor = -np.inf, None
+    i = t
+    while 0 <= i < len(v) and abs(i - t) <= tope:
+        if np.isfinite(v[i]):
+            if v[i] > mejor:
+                mejor, i_mejor = v[i], i
+            elif v[i] < mejor - histeresis:
+                break
+        i += paso
+    return i_mejor
+
+
+def suavizar(v, k=SUAVIZADO):
+    return pd.Series(v).rolling(2 * k + 1, center=True, min_periods=1).median().to_numpy()
+
+
+def terminacion(s, t):
+    """(altura maxima de la muneca tras el impacto, frame en que la alcanza)."""
+    altura = suavizar(s["altura"])
+    fin = hasta_el_extremo(altura, t, +1, HISTERESIS_TERMINACION)
+    return (np.nan, None) if fin is None else (float(altura[fin]), fin)
+
+
+def giro_hombros(s, t, fin):
+    """Amplitud del giro de hombros entre la maxima torsion antes del impacto
+    y la terminacion (fin), en grados."""
+    giro = suavizar(s["hombros_giro"])
+    if fin is None or not np.isfinite(giro[t]):
+        return np.nan
+    inicio = hasta_el_extremo(np.abs(giro - giro[t]), t, -1, HISTERESIS_GIRO)
+    tramo = giro[inicio:fin + 1]
+    return float(np.nanmax(tramo) - np.nanmin(tramo)) if np.isfinite(tramo).any() else np.nan
 
 
 def inicio_ventana_carga(s, t, tipo):
@@ -156,6 +261,9 @@ def metricas(s, t, tipo, fps, vis_brazo):
         m["altura_impacto"] = mediana_en(s["altura"], t)
         m["ancho_apoyos"] = mediana_en(s["apoyos"], t)
         m["impacto_delante"] = impacto_delante(s, t)
+        m["terminacion"], fin = terminacion(s, t)
+        m["giro_hombros"] = giro_hombros(s, t, fin)
+        m["peso_delante"] = peso_delante(s, t)
     if not vis_brazo >= UMBRAL_VIS:
         for clave in ("codo_impacto", "altura_impacto", "impacto_delante", "alcance"):
             if clave in m:

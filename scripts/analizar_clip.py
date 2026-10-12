@@ -57,6 +57,9 @@ FIABILIDAD = {
     "altura_impacto": "media",
     "codo_impacto": "baja",
     "impacto_delante": "baja",
+    "terminacion": "alta",
+    "giro_hombros": "media",
+    "peso_delante": "media",
 }
 METRICAS_BRAZO = {"codo_impacto", "impacto_delante", "altura_impacto"}
 
@@ -68,6 +71,11 @@ DESCRIPCION = {
     "altura_impacto": ("altura del impacto", "0 = cadera, 1 = hombros"),
     "codo_impacto": ("extension del codo en el impacto", "grados (180 = brazo recto)"),
     "impacto_delante": ("impacto por delante del cuerpo", "longitudes de torso"),
+    "terminacion": ("altura de la muneca al terminar el golpe", "0 = cadera, 1 = hombros"),
+    "giro_hombros": ("amplitud del giro de hombros, de la preparacion a la terminacion",
+                     "grados"),
+    "peso_delante": ("cadera por delante de los pies en el impacto (transferencia del peso)",
+                     "longitudes de torso"),
 }
 
 

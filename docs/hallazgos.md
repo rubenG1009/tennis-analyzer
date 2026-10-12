@@ -300,3 +300,63 @@ frente a ≥ 0,97), y es una diferencia que se ve en el vídeo.
 - La vista "lateral" de estos clips significa cámara en el lateral de la pista:
   el jugador queda de frente en la derecha y de espaldas en el revés (o al
   revés, según el lado). Hay que grabar igual para que la comparación valga.
+
+---
+
+## 2026-10-12 — Tres métricas nuevas: terminación, giro de hombros y peso delante
+
+Objetivo: pasar de medir la postura en el impacto a medir cómo se construye el
+golpe. Probadas sobre las mismas 14 sesiones de referencia (derecha lateral y
+frontal, revés lateral) antes de darlas por buenas.
+
+### Lo que se descartó y por qué
+
+| Candidata | Problema |
+|---|---|
+| Desplazamiento de la cadera hacia delante | La cámara sigue al jugador en los clips de referencia: el desplazamiento en la imagen mezcla jugador y cámara. |
+| Giro de hombros **en el impacto** | Cambia 20–30° con 3 frames de error: los hombros giran más rápido justo en el impacto. |
+| Giro de caderas y separación hombros-cadera | Dispersión entre golpes de un mismo jugador de 25–35°: las caderas de BlazePose son poco fiables. |
+| Ventana del gesto deducida de la velocidad de la muñeca | En cámara lenta editada (revés de Djokovic a 1000 fps) daba 19 frames cuando la terminación llega 200 frames después del impacto: giro de 3°. |
+
+### Lo que quedó
+
+- **`terminacion`**: punto más alto de la muñeca tras el impacto (1 = hombros),
+  buscando hacia delante mientras la muñeca siga subiendo.
+- **`giro_hombros`**: amplitud del giro de la línea de hombros desde la máxima
+  torsión hasta la terminación. El giro se lee del escorzo con signo de la línea
+  entre hombros (0° de espaldas a cámara, 180° de frente), lo que exige que
+  izquierda y derecha estén bien: sin `corregir_esqueleto` no se podría medir.
+- **`peso_delante`**: cadera respecto al punto medio de los pies en el impacto,
+  hacia donde va la muñeca.
+
+Sensibilidad a ±3 frames de error en el impacto (cambio mediano): terminación
+0, giro 0°, peso 0,04–0,06 torsos.
+
+Derecha lateral, mediana por jugador: terminación 0,93 (Sinner) a 1,64
+(Alcaraz); giro 81° (Nava) a 102° (Djokovic a 1000 fps, Ymer 101°); peso
+−0,12 (Alcaraz) a 0,24 (Lehecka).
+
+### Validación dejando fuera a cada jugador (`validar_comparacion.py --fps 30`)
+
+| Métrica | Profesional dentro del rango |
+|---|---|
+| tronco_impacto | 93 % |
+| terminacion | 86 % |
+| peso_delante | 86 % |
+| rodilla_min | 86 % |
+| altura_impacto | 80 % |
+| giro_hombros | 79 % |
+| ancho_apoyos | 79 % |
+| **Total** | **84 %** (94 comparaciones) |
+
+Las nuevas quedan al nivel de las anteriores. Varios de los profesionales que
+caen fuera lo hacen **por encima**: Alcaraz termina más alto y gira más que el
+resto. Para un aficionado, quedarse por debajo en giro o terminación es lo que
+suele indicar un golpe de brazo; pasarse por arriba rara vez es un problema.
+Hoy la comparación no distingue el sentido; es lo siguiente que habría que
+añadir, junto con qué ejercicio sugerir en cada caso.
+
+`peso_delante` es estable pero distingue poco: la dispersión entre golpes de un
+mismo jugador (0,3 torsos) es del orden de la diferencia entre jugadores. Por
+eso lleva fiabilidad "media" aunque no dependa del impacto.
+
