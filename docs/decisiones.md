@@ -246,3 +246,30 @@ con 3 frames de error en el impacto.
 
 **Consecuencia.** Con vídeo normal de móvil, el informe se apoya en piernas,
 tronco y apoyos. Para el brazo hay que grabar en cámara lenta.
+
+---
+
+## 2026-10-12 — El informe lo redacta un LLM a partir de la tabla, no del vídeo
+
+**Contexto.** La etapa 4 tiene que convertir las métricas en un texto útil para
+un jugador. Un LLM con visión podría mirar el vídeo directamente, pero entonces
+opinaría sobre cosas que el pipeline no ha medido, sin forma de comprobarlo.
+
+**Decisión.** `redactar_informe.py` le pasa a Claude (`claude-opus-5-5`, una
+sola llamada, sin herramientas) solo la tabla de la sesión: valor, rango de los
+profesionales, estado y fiabilidad de cada métrica. El prompt fija qué puede
+decir de cada estado. Tras la respuesta, `numeros_no_respaldados` busca cifras
+que no salgan del informe y las avisa. Se activa `fallbacks="default"` para que
+un rechazo de los clasificadores de seguridad (un falso positivo es posible) se
+repita en otro modelo en lugar de dejar el informe sin hacer.
+
+El script lleva sus dependencias en la cabecera (PEP 723) y se ejecuta con
+`uv run`: anthropic 1.x exige Python ≥ 3.10 y el proyecto sigue en 3.9 por
+mediapipe. Las funciones puras importan en 3.9 y se testean con un cliente
+falso; la llamada real no está bajo test.
+
+**Consecuencia.** El informe no puede ir más allá de las métricas: si la tabla
+no dice nada del brazo, el texto tampoco. Es deliberado, la parte que aporta el
+LLM es la explicación, no la medida. El verificador de cifras solo avisa; no
+detecta afirmaciones cualitativas inventadas, para eso hay que leer el informe.
+

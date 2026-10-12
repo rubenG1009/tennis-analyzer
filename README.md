@@ -19,14 +19,14 @@ esos números.
 
 ## Estado
 
-**Implementadas las etapas 1 a 3. Falta el agente LLM.**
+**Implementadas las cuatro etapas.**
 
 | Etapa | Estado |
 |---|---|
 | 1. Vídeo -> serie temporal de landmarks | implementada, con corrección de inversiones y evaluación de calidad |
 | 2. Segmentación de repeticiones | implementada (`segmentar_golpes.py`) |
 | 3. Métricas biomecánicas | implementada (`metricas_golpe.py`, `analizar_clip.py`) |
-| 4. Agente LLM e informe | no empezada |
+| 4. Informe redactado por un LLM | implementada (`redactar_informe.py`) |
 
 No hay backend, ni API, ni contenedores, y no está previsto añadirlos por ahora.
 
@@ -143,6 +143,25 @@ Cómo grabar para que sirva:
 - Solo diestros por ahora.
 
 Qué se compara y con qué fiabilidad está en [docs/hallazgos.md](docs/hallazgos.md).
+
+## Informe en lenguaje natural
+
+```bash
+export ANTHROPIC_API_KEY=...
+uv run scripts/redactar_informe.py data/processed/mi_derecha_informe.json
+```
+
+Convierte el `_informe.json` de `analizar_clip.py` en un informe de entrenador
+(`_informe.md`) con Claude. Se ejecuta con `uv run` porque el SDK de Anthropic
+exige Python ≥ 3.10 y el resto del proyecto está en 3.9; `uv` instala lo que
+haga falta la primera vez. Con `--dry-run` imprime el prompt sin llamar a la
+API ni necesitar clave.
+
+El modelo no ve el vídeo: solo la tabla de la sesión, con el estado y la
+fiabilidad de cada métrica. El prompt le prohíbe valorar las métricas que no se
+pudieron comparar y presentar "fuera de rango" como un error. Después, el
+script busca en el texto cifras que no salgan del informe y las avisa por
+consola.
 
 ## Tests
 
