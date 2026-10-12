@@ -362,3 +362,27 @@ apoyos estrechos, Alcaraz se inclina más en el impacto.
 mismo jugador (0,3 torsos) es del orden de la diferencia entre jugadores. Por
 eso lleva fiabilidad "media" aunque no dependa del impacto.
 
+---
+
+## 2026-10-12 — Primer clip propio: sombras en casa, no analizable
+
+iPhone 17, 60 fps, 1920 × 1080, 21 s, HEVC 10 bits HDR: OpenCV lo lee y lo
+rota bien y el pipeline entero corre (81 s). Pero el clip no sirve para
+métricas, y enseñó un fallo:
+
+- **Piernas fuera del plano** (cámara baja, cortado por las rodillas):
+  `right_knee` con visibility media 0,05. Aun así salían `rodilla_min` = 163°
+  ("piernas rígidas") y `ancho_apoyos` = 0,42: puntos inventados por
+  BlazePose. **Corregido:** las métricas de piernas quedan vacías si la
+  mediana de la visibility de rodillas y tobillos no llega a 0,5, igual que ya
+  se hacía con el brazo. En las referencias solo se pierde 1 golpe de 128.
+- **Sombras hechas despacio**: 6–7 ciclos de unos 3 s, con la muñeca casi
+  parada. No hay pico de velocidad de golpe; los 5 "golpes" detectados son
+  picos sueltos y el manejo del móvil al empezar y al acabar. Sus métricas no
+  significan nada.
+- **Vista frontal**, de cara a la cámara. Hay referencias (4 jugadores), pero
+  el giro de hombros y el peso se leen mejor de lado.
+
+Para un clip útil: golpes a velocidad real (mejor con bola), cámara en el
+lateral a la altura de la cadera, cuerpo entero con los pies, cámara lenta.
+

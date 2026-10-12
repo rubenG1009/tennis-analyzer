@@ -342,3 +342,15 @@ def test_validacion_dejando_fuera_a_cada_jugador():
     # los extremos (j0 y j3) quedan fuera del rango de los demas; los del medio, dentro
     assert t.set_index("jugador")["dentro"].to_dict() == {
         "j0": False, "j1": True, "j2": True, "j3": False, "j4": True}
+
+
+def test_sin_piernas_visibles_no_hay_metricas_de_piernas():
+    s = serie_de_golpe()
+    n = len(s["torso"])
+    s.update(codo=np.full(n, 150.0), rodilla=np.full(n, 160.0), tronco=np.full(n, 5.0),
+             apoyos=np.full(n, 0.4), velocidad=np.linspace(0, 1, n))
+    con = mg.metricas(s, 20, "fondo", 60, vis_brazo=0.9, vis_piernas=0.9)
+    sin = mg.metricas(s, 20, "fondo", 60, vis_brazo=0.9, vis_piernas=0.05)
+    for clave in mg.METRICAS_PIERNAS:
+        assert np.isfinite(con[clave]) and np.isnan(sin[clave])
+    assert sin["terminacion"] == con["terminacion"]          # el resto no se toca

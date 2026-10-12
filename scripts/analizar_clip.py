@@ -117,7 +117,9 @@ def comparar(metricas, ref, golpe, vista, fps):
                 "fiabilidad": FIABILIDAD[clave], "descripcion": DESCRIPCION[clave][0],
                 "unidad": DESCRIPCION[clave][1]}
         if fila["valor"] is None:
-            fila["estado"] = "sin dato (brazo no visible)"
+            fila["estado"] = ("sin dato (piernas fuera de plano o tapadas)"
+                              if clave in metricas_golpe.METRICAS_PIERNAS
+                              else "sin dato (brazo no visible)")
         elif clave in METRICAS_BRAZO and FIABILIDAD[clave] == "baja" and fps < FPS_FIABLE_BRAZO:
             fila["estado"] = f"no comparable a {fps:.0f} fps (graba en camara lenta)"
         else:

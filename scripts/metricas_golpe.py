@@ -247,13 +247,18 @@ def inicio_ventana_carga(s, t, tipo):
     return max(t - 2 * (t - t0), t - MAX_VENTANA_CARGA, 0)
 
 
-def metricas(s, t, tipo, fps, vis_brazo):
+METRICAS_PIERNAS = ("rodilla_min", "ancho_apoyos", "peso_delante")
+PUNTOS_PIERNAS = ("left_knee", "right_knee", "left_ankle", "right_ankle")
+
+
+def metricas(s, t, tipo, fps, vis_brazo, vis_piernas=1.0):
     rodilla = s["rodilla"][inicio_ventana_carga(s, t, tipo):t + 1]
     m = {
         "codo_impacto": mediana_en(s["codo"], t),
         "rodilla_min": float(np.nanmin(rodilla)) if np.isfinite(rodilla).any() else np.nan,
         "tronco_impacto": mediana_en(s["tronco"], t),
         "vis_brazo": vis_brazo,
+        "vis_piernas": vis_piernas,
     }
     if tipo == "saque":
         m["alcance"] = mediana_en(s["alcance"], t)
@@ -268,6 +273,14 @@ def metricas(s, t, tipo, fps, vis_brazo):
         for clave in ("codo_impacto", "altura_impacto", "impacto_delante", "alcance"):
             if clave in m:
                 m[clave] = np.nan
+    # Igual con las piernas: si rodillas y tobillos quedan fuera del plano,
+    # BlazePose se los inventa con visibility ~0.05 y salian "piernas rigidas"
+    # sobre unas piernas que no estaban en el video (clip de sombras en casa,
+    # 2026-10-12).
+    if not vis_piernas >= UMBRAL_VIS:
+        for clave in METRICAS_PIERNAS:
+            if clave in m:
+                m[clave] = np.nan
     return m
 
 
@@ -279,8 +292,11 @@ def medir_golpes(ruta_csv, ancho, alto, fps, golpes, lado="right", desplazamient
     for impacto, tipo in golpes:
         t = int(np.clip(impacto + desplazamiento, 0, n - 1))
         v = np.nanmin([vis[f"{lado}_{p}"][t] for p in ("shoulder", "elbow", "wrist")])
+        # mediana y no minimo: de perfil una pierna tapa a la otra y basta con
+        # que se vean la mitad de los puntos
+        vp = np.nanmedian([vis[p][t] for p in PUNTOS_PIERNAS])
         filas.append({"impacto": impacto, **metricas(s, t, "saque" if tipo == "saque" else "fondo",
-                                                    fps, float(v))})
+                                                    fps, float(v), float(vp))})
     return filas
 
 
