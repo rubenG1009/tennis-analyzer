@@ -181,11 +181,13 @@ def peso_delante(s, t, k=SUAVIZADO):
     return float(np.nanmedian(rel)) if np.isfinite(rel).any() else np.nan
 
 
-def hasta_el_extremo(v, t, paso, histeresis, tope=MAX_VENTANA_CARGA):
+def hasta_el_extremo(v, t, paso, histeresis, tope=MAX_VENTANA_CARGA, oculto=None):
     """Recorre v desde t en la direccion `paso` (+1 o -1) mientras siga
     creciendo, y devuelve el indice del maximo. Para cuando v cae `histeresis`
     por debajo del maximo visto, al llegar al borde o tras `tope` frames; los
-    NaN se saltan. Funcion pura.
+    NaN se saltan. Si `oculto` (booleano por frame) se hace True antes de
+    confirmar el maximo, devuelve None: el maximo de verdad pudo estar en la
+    parte que no se ve. Funcion pura.
 
     Sirve para encontrar la terminacion y la maxima torsion sin suponer cuanto
     dura el gesto: en camara lenta editada (con rampas de velocidad) la
@@ -195,6 +197,8 @@ def hasta_el_extremo(v, t, paso, histeresis, tope=MAX_VENTANA_CARGA):
     mejor, i_mejor = -np.inf, None
     i = t
     while 0 <= i < len(v) and abs(i - t) <= tope:
+        if oculto is not None and oculto[i]:
+            return None
         if np.isfinite(v[i]):
             if v[i] > mejor:
                 mejor, i_mejor = v[i], i
@@ -209,21 +213,31 @@ def suavizar(v, k=SUAVIZADO):
 
 
 def terminacion(s, t):
-    """(altura maxima de la muneca tras el impacto, frame en que la alcanza)."""
+    """Altura maxima de la muneca tras el impacto, o NaN si la muneca deja de
+    verse antes de empezar a bajar. Visto de lado, en la terminacion la muneca
+    pasa por detras de la cabeza; BlazePose la sigue colocando, mas abajo, y
+    la terminacion salia cortada (primer clip propio a 240 fps: 0,79 con la
+    raqueta acabando sobre el hombro)."""
     altura = suavizar(s["altura"])
-    fin = hasta_el_extremo(altura, t, +1, HISTERESIS_TERMINACION)
-    return (np.nan, None) if fin is None else (float(altura[fin]), fin)
+    oculto = s["vis_muneca"] < UMBRAL_VIS if "vis_muneca" in s else None
+    fin = hasta_el_extremo(altura, t, +1, HISTERESIS_TERMINACION, oculto=oculto)
+    return np.nan if fin is None else float(altura[fin])
 
 
-def giro_hombros(s, t, fin):
+def giro_hombros(s, t):
     """Amplitud del giro de hombros entre la maxima torsion antes del impacto
-    y la terminacion (fin), en grados."""
+    y el final del giro despues, en grados. Los dos extremos se buscan en la
+    propia orientacion de los hombros, sin depender de la muneca."""
     giro = suavizar(s["hombros_giro"])
-    if fin is None or not np.isfinite(giro[t]):
+    if not np.isfinite(giro[t]):
         return np.nan
-    inicio = hasta_el_extremo(np.abs(giro - giro[t]), t, -1, HISTERESIS_GIRO)
+    lejos = np.abs(giro - giro[t])
+    inicio = hasta_el_extremo(lejos, t, -1, HISTERESIS_GIRO)
+    fin = hasta_el_extremo(lejos, t, +1, HISTERESIS_GIRO)
+    if inicio is None or fin is None:
+        return np.nan
     tramo = giro[inicio:fin + 1]
-    return float(np.nanmax(tramo) - np.nanmin(tramo)) if np.isfinite(tramo).any() else np.nan
+    return float(np.nanmax(tramo) - np.nanmin(tramo))
 
 
 def inicio_ventana_carga(s, t, tipo):
@@ -266,8 +280,8 @@ def metricas(s, t, tipo, fps, vis_brazo, vis_piernas=1.0):
         m["altura_impacto"] = mediana_en(s["altura"], t)
         m["ancho_apoyos"] = mediana_en(s["apoyos"], t)
         m["impacto_delante"] = impacto_delante(s, t)
-        m["terminacion"], fin = terminacion(s, t)
-        m["giro_hombros"] = giro_hombros(s, t, fin)
+        m["terminacion"] = terminacion(s, t)
+        m["giro_hombros"] = giro_hombros(s, t)
         m["peso_delante"] = peso_delante(s, t)
     if not vis_brazo >= UMBRAL_VIS:
         for clave in ("codo_impacto", "altura_impacto", "impacto_delante", "alcance"):
@@ -288,6 +302,7 @@ def medir_golpes(ruta_csv, ancho, alto, fps, golpes, lado="right", desplazamient
     """golpes: iterable de (impacto, tipo). Devuelve lista de dicts de metricas."""
     n, xy, vis = cargar(ruta_csv, ancho, alto)
     s = series(xy, lado)
+    s["vis_muneca"] = np.nan_to_num(vis[f"{lado}_wrist"], nan=0.0)
     filas = []
     for impacto, tipo in golpes:
         t = int(np.clip(impacto + desplazamiento, 0, n - 1))

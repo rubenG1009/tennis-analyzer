@@ -386,3 +386,40 @@ métricas, y enseñó un fallo:
 Para un clip útil: golpes a velocidad real (mejor con bola), cámara en el
 lateral a la altura de la cadera, cuerpo entero con los pies, cámara lenta.
 
+---
+
+## 2026-10-12 (2) — Segundo clip propio: sombras a 240 fps, de lado
+
+iPhone, cámara trasera en el suelo, de perfil, cuerpo entero, 240 fps reales,
+31 s, 7 derechas en sombra (sin bola). Detección en el 97 % de los frames,
+muñeca visible el 73 %.
+
+Lo que destapó, ya corregido:
+
+- **Preparación alta tomada por saque.** Con la raqueta sobre la cabeza el
+  detector de saques se activaba y excluía los golpes de alrededor; además
+  podía poner el saque en un frame sin detección y el segmentador se caía.
+  Ahora `segmentar` busca solo el tipo de golpe del clip (`solo=`).
+- **Sin bola no hay impacto que detectar.** El pico de velocidad de la
+  muñeca cae en el bucle de la preparación, no en el contacto: de 17
+  "golpes" detectados, 3 eran colocar el móvil y 6 la preparación. Para
+  sombras, `analizar_clip.py --impactos` acepta los impactos marcados a mano.
+  Marcados mirando los frames: 2258, 2833, 3378, 4158, 4831, 5619 y 6197
+  (±8 frames).
+- **Muñeca tapada en la terminación.** De lado, la muñeca pasa por detrás de
+  la cabeza (visibility de 0,99 a 0,02) y BlazePose la sigue colocando, más
+  abajo: la terminación salía 0,79 con la raqueta acabando sobre el hombro.
+  Ahora es NaN si la muñeca deja de verse antes de empezar a bajar. En las
+  referencias se mide en 81 de 128 golpes (casi todos los perdidos, reveses).
+- **El giro dependía de la terminación.** Se cortaba donde acababa la
+  terminación (50° en un swing que gira 82°). Ahora los dos extremos del giro
+  se buscan en la propia orientación de los hombros. Con el giro completo,
+  los profesionales giran 118–145° en derecha lateral.
+- **Valores de sesión con un solo golpe.** Una métrica medida en menos de 3
+  golpes ya no se compara.
+
+Resultado (mediana de 7 golpes): el giro de hombros, 84° frente a 108–155°
+de los profesionales, queda por debajo en los 7 golpes (68–91°). Rodillas,
+tronco, apoyos y codo, dentro. Altura del impacto ligeramente por encima, sin
+valor en sombra: sin bola el impacto es donde uno se lo imagina.
+

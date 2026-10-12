@@ -53,6 +53,7 @@ FPS_FIABLE_BRAZO = 100
 MIN_JUGADORES = 3
 MARGEN_INTRA = 0.25
 MIN_GOLPES_JUGADOR = 3
+MIN_GOLPES_SESION = 3   # golpes con dato para dar el valor de la sesion
 
 FIABILIDAD = {
     "rodilla_min": "alta",
@@ -142,6 +143,18 @@ def comparar(metricas, ref, golpe, vista, fps):
     return filas
 
 
+def marcar_pocos_golpes(filas, medidos, total):
+    """Anota en cuantos golpes se pudo medir cada metrica y, si fueron menos
+    de MIN_GOLPES_SESION pero alguno, lo dice en el estado en vez de culpar a
+    la visibilidad en general. Funcion pura."""
+    for f in filas:
+        f["golpes_medidos"] = medidos.get(f["metrica"], 0)
+        if f["valor"] is None and 0 < f["golpes_medidos"] < MIN_GOLPES_SESION:
+            f["estado"] = (f"sin dato (solo se pudo medir en {f['golpes_medidos']} "
+                           f"de {total} golpes)")
+    return filas
+
+
 def cargar_referencias(ruta):
     ref = pd.read_csv(ruta)
     if "desplazamiento" in ref:
@@ -164,6 +177,11 @@ def main():
                         default=os.path.join(RAIZ, "data", "processed", "metricas_referencia.csv"))
     parser.add_argument("--excluir-jugador", metavar="NOMBRE",
                         help="Quita a ese jugador de las referencias (para validar con un pro)")
+    parser.add_argument("--impactos", metavar="F1,F2,...",
+                        help="Frames de impacto marcados a mano, en lugar de detectarlos. "
+                             "Para sombras sin bola: el bucle de la preparacion es tan "
+                             "rapido como el golpe y el segmentador no sabe donde esta el "
+                             "contacto")
     parser.add_argument("--reusar", action="store_true",
                         help="No vuelve a extraer landmarks si ya existe el CSV")
     args = parser.parse_args()
@@ -185,9 +203,12 @@ def main():
     corregir_esqueleto.corregir(f"{pre}_landmarks.csv", ancho, alto, f"{pre}_corregido.csv",
                                 f"{pre}_raqueta.csv", f"{pre}_cortes.csv", args.lado)
     quiero = "saque" if args.golpe == "saque" else "fondo"
-    golpes = segmentar_golpes.segmentar(f"{pre}_corregido.csv", ancho, alto, fps,
-                                        f"{pre}_raqueta.csv", f"{pre}_cortes.csv", args.lado,
-                                        solo=quiero)
+    if args.impactos:
+        golpes = [{"tipo": quiero, "impacto": int(f)} for f in args.impactos.split(",")]
+    else:
+        golpes = segmentar_golpes.segmentar(f"{pre}_corregido.csv", ancho, alto, fps,
+                                            f"{pre}_raqueta.csv", f"{pre}_cortes.csv",
+                                            args.lado, solo=quiero)
     descartados = [g for g in golpes if g["tipo"] != quiero]
     golpes = [g for g in golpes if g["tipo"] == quiero]
 
@@ -198,13 +219,16 @@ def main():
                                           [(g["impacto"], g["tipo"]) for g in golpes], args.lado)
 
     tabla = pd.DataFrame(medidas)
-    sesion = {c: float(tabla[c].median()) if tabla[c].notna().any() else np.nan
-              for c in FIABILIDAD if c in tabla}
+    medidos = {c: int(tabla[c].notna().sum()) for c in FIABILIDAD if c in tabla}
+    sesion = {c: float(tabla[c].median()) if medidos[c] >= MIN_GOLPES_SESION else np.nan
+              for c in medidos}
     informe = {
         "video": args.video, "golpe": args.golpe, "vista": args.vista, "fps": fps,
+        "impactos": "a mano" if args.impactos else "automaticos",
         "golpes_detectados": len(golpes),
         "golpes_descartados_por_tipo": [g["impacto"] for g in descartados],
-        "sesion": comparar(sesion, ref, args.golpe, args.vista, fps),
+        "sesion": marcar_pocos_golpes(comparar(sesion, ref, args.golpe, args.vista, fps),
+                                      medidos, len(golpes)),
         "golpes": [{"impacto_frame": g["impacto"], "impacto_s": round(g["impacto"] / fps, 2),
                     **{k: (None if pd.isna(v) else float(v)) for k, v in m.items()}}
                    for g, m in zip(golpes, medidas)],

@@ -326,11 +326,31 @@ def test_direccion_y_peso_delante_siguen_al_golpe():
 
 def test_terminacion_y_giro_del_golpe_sintetico():
     s = serie_de_golpe()
-    altura, fin = mg.terminacion(s, 20)
-    assert altura == pytest.approx(1.5, abs=0.12) and 27 <= fin <= 31
-    # de la maxima torsion (20 grados, frame 9) a la terminacion; el suavizado
-    # redondea el pico en V de la serie sintetica y le quita unos grados
-    assert mg.giro_hombros(s, 20, fin) == pytest.approx(s["hombros_giro"][fin] - 20, abs=6)
+    assert mg.terminacion(s, 20) == pytest.approx(1.5, abs=0.12)
+    # de la maxima torsion (20 grados, frame 9) al final de la serie (140); el
+    # suavizado redondea el pico en V y el borde final y le quita unos grados
+    assert mg.giro_hombros(s, 20) == pytest.approx(120, abs=10)
+
+
+def test_terminacion_con_la_muneca_tapada_no_se_mide():
+    s = serie_de_golpe()
+    s["vis_muneca"] = np.ones(len(s["altura"]))
+    assert np.isfinite(mg.terminacion(s, 20))
+    s["vis_muneca"][25:] = 0.05            # se tapa mientras aun sube
+    assert np.isnan(mg.terminacion(s, 20))
+    s["vis_muneca"][:] = 1.0
+    s["vis_muneca"][36:] = 0.05            # se tapa cuando ya ha bajado: da igual
+    assert mg.terminacion(s, 20) == pytest.approx(1.5, abs=0.12)
+
+
+def test_hasta_el_extremo_devuelve_none_si_se_oculta_antes():
+    v = np.array([0, 1, 2, 3, 4, 3, 1.0])
+    oculto = np.zeros(7, bool)
+    oculto[3] = True
+    assert mg.hasta_el_extremo(v, 0, +1, 1.0, oculto=oculto) is None
+    oculto[:] = False
+    oculto[6] = True                        # el 3 de despues ya confirma el maximo
+    assert mg.hasta_el_extremo(v, 0, +1, 0.5, oculto=oculto) == 4
 
 
 def test_validacion_dejando_fuera_a_cada_jugador():
@@ -364,3 +384,12 @@ def test_el_saque_nunca_cae_en_un_frame_sin_deteccion():
     validos[30] = False                               # ...pero en un frame no valido
     impactos = sg.impactos_de_saque(altura, validos)
     assert len(impactos) == 1 and validos[impactos[0]]
+
+
+def test_metrica_medida_en_pocos_golpes_lo_dice():
+    filas = ac.comparar({"terminacion": np.nan, "rodilla_min": 120.0},
+                        referencias_sinteticas(), "derecha", "lateral", 240)
+    filas = ac.marcar_pocos_golpes(filas, {"terminacion": 1, "rodilla_min": 7}, 7)
+    estados = {f["metrica"]: f["estado"] for f in filas}
+    assert estados["terminacion"] == "sin dato (solo se pudo medir en 1 de 7 golpes)"
+    assert estados["rodilla_min"] == "dentro del rango"
