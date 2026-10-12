@@ -5,8 +5,14 @@ mediapipe==1.0.0
 opencv-python==5.0.0.93
 numpy==2.0.2
 pandas==2.3.3
+scipy==1.13.1
 matplotlib==3.9.4
 jupyterlab==4.5.10
+
+# --- clips de referencia (scripts/download_references.py) ---
+# ffmpeg estatico para recortar tramos sin instalar nada en el sistema. yt-dlp
+# NO va aqui: se ejecuta con uvx porque exige Python >= 3.10.
+imageio-ffmpeg==0.6.0
 
 # --- desarrollo (no hace falta para ejecutar el pipeline) ---
 # pip install -r requirements.txt instala tambien esto; para un entorno de

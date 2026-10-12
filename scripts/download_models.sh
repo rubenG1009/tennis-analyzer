@@ -28,8 +28,8 @@ tam_fichero() {
 
 descargar_modelo() {
     local variante="$1"
-    local destino="$DIR_MODELOS/pose_landmarker_${variante}.task"
-    local url="$BASE_URL/pose_landmarker_${variante}/float16/latest/pose_landmarker_${variante}.task"
+    local destino="${2:-$DIR_MODELOS/pose_landmarker_${variante}.task}"
+    local url="${3:-$BASE_URL/pose_landmarker_${variante}/float16/latest/pose_landmarker_${variante}.task}"
 
     if [ -f "$destino" ] && [ "$(tam_fichero "$destino")" -ge "$TAM_MINIMO" ]; then
         echo "  [ok]   ${variante}: ya esta en models/ ($(tam_fichero "$destino") bytes)"
@@ -65,4 +65,7 @@ descargar_modelo() {
 echo "Modelos en: $DIR_MODELOS"
 descargar_modelo heavy   # el que usa el pipeline
 descargar_modelo lite    # el que usan los tests de integracion
+# detector COCO para la raqueta (extract_pose.py --raqueta)
+descargar_modelo efficientdet_lite2 "$DIR_MODELOS/efficientdet_lite2.tflite" \
+    "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float32/latest/efficientdet_lite2.tflite"
 echo "Listo."

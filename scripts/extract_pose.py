@@ -16,6 +16,8 @@ import numpy as np
 import mediapipe as mp
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import (
+    ObjectDetector,
+    ObjectDetectorOptions,
     PoseLandmarker,
     PoseLandmarkerOptions,
     RunningMode,
@@ -66,6 +68,15 @@ LANDMARKS_INFORME = [
 
 UMBRAL_VISIBILITY = 0.5
 
+# Deteccion de cortes de escena. Medidos sobre los clips de referencia: los
+# cortes reales dan una diferencia media >= 20 (escala de grises 0-255 sobre una
+# miniatura de 64x36) y el movimiento normal, incluidos barridos de camara,
+# <= 15. El histograma de color cubre cortes a negro y rotulos.
+UMBRAL_CORTE_DIFERENCIA = 18.0
+UMBRAL_CORTE_HISTOGRAMA = 0.5
+
+MAX_RAQUETAS = 3
+
 
 def obtener_fourcc(codec):
     """OpenCV 5 pudo mover VideoWriter_fourcc a VideoWriter.fourcc."""
@@ -109,6 +120,24 @@ def calcular_estadisticas_visibility(valores, total_frames, umbral=None):
     return media, minima, pct
 
 
+def firma_frame(frame):
+    """Miniatura en grises e histograma H-S de un frame, para comparar frames."""
+    pequeno = cv2.resize(frame, (64, 36))
+    gris = cv2.GaussianBlur(cv2.cvtColor(pequeno, cv2.COLOR_BGR2GRAY), (3, 3), 0)
+    hsv = cv2.cvtColor(cv2.resize(frame, (160, 90)), cv2.COLOR_BGR2HSV)
+    hist = cv2.calcHist([hsv], [0, 1], None, [32, 32], [0, 180, 0, 256])
+    return gris.astype(np.float32), cv2.normalize(hist, hist).flatten()
+
+
+def es_corte(firma_prev, firma):
+    """True si entre los dos frames hay un corte de escena. Funcion pura."""
+    if firma_prev is None:
+        return False
+    diferencia = float(np.mean(np.abs(firma[0] - firma_prev[0])))
+    correlacion = cv2.compareHist(firma_prev[1], firma[1], cv2.HISTCMP_CORREL)
+    return diferencia > UMBRAL_CORTE_DIFERENCIA or correlacion < UMBRAL_CORTE_HISTOGRAMA
+
+
 def dibujar_esqueleto(frame, landmarks, ancho, alto):
     """Pinta huesos y articulaciones sobre el frame (coordenadas normalizadas)."""
     # Pixeles enteros de cada landmark, para no recalcularlos en cada hueso.
@@ -123,9 +152,19 @@ def dibujar_esqueleto(frame, landmarks, ancho, alto):
         cv2.circle(frame, (px, py), 4, color, -1)
 
 
-def procesar_video(ruta_video, ruta_modelo, out_dir):
+def procesar_video(ruta_video, ruta_modelo, out_dir, ruta_modelo_raqueta=None):
     """Procesa el video entero: escribe el CSV largo, el video de debug
     e imprime el informe. Devuelve las rutas generadas y el resumen.
+
+    En cada corte de escena se recrea el PoseLandmarker. En modo VIDEO el
+    modelo sigue la region del frame anterior en vez de volver a detectar, y
+    tras un corte se queda enganchado a quien este en esa zona (en los clips de
+    referencia, un jugador del fondo durante 35 frames). Recrearlo fuerza una
+    deteccion nueva. Los cortes se escriben en <nombre>_cortes.csv.
+
+    Con ruta_modelo_raqueta se detecta ademas la raqueta en cada frame (clase
+    COCO "tennis racket") y se escribe <nombre>_raqueta.csv; corregir_esqueleto
+    la usa para saber cual es la mano dominante.
 
     Separada de main() para poder invocar el pipeline desde los tests sin
     pasar por el parseo de argumentos.
@@ -147,6 +186,8 @@ def procesar_video(ruta_video, ruta_modelo, out_dir):
     base = os.path.splitext(os.path.basename(ruta_video))[0]
     ruta_csv = os.path.join(out_dir, f"{base}_landmarks.csv")
     ruta_debug = os.path.join(out_dir, f"{base}_debug.mp4")
+    ruta_cortes = os.path.join(out_dir, f"{base}_cortes.csv")
+    ruta_raqueta = os.path.join(out_dir, f"{base}_raqueta.csv")
 
     escritor_video = cv2.VideoWriter(ruta_debug, obtener_fourcc("mp4v"), fps, (ancho, alto))
     if not escritor_video.isOpened():
@@ -163,16 +204,32 @@ def procesar_video(ruta_video, ruta_modelo, out_dir):
         output_segmentation_masks=False,
     )
 
+    detector_raqueta = None
+    f_raqueta = None
+    if ruta_modelo_raqueta:
+        detector_raqueta = ObjectDetector.create_from_options(ObjectDetectorOptions(
+            base_options=BaseOptions(model_asset_path=ruta_modelo_raqueta),
+            running_mode=RunningMode.IMAGE,
+            score_threshold=0.2,
+            max_results=MAX_RAQUETAS,
+            category_allowlist=["tennis racket"],
+        ))
+        f_raqueta = open(ruta_raqueta, "w", newline="")
+        escritor_raqueta = csv.writer(f_raqueta)
+        escritor_raqueta.writerow(["frame", "score", "x0", "y0", "x1", "y1"])
+
     frames_leidos = 0
     frames_sin_deteccion = 0
+    cortes = []
+    firma_prev = None
     ultimo_t_ms = -1
     # visibility acumulada por landmark de interes, solo de frames con deteccion.
     visibilidades = {nombre: [] for nombre in LANDMARKS_INFORME}
 
     print(f"Procesando {ruta_video} ...")
 
-    with PoseLandmarker.create_from_options(opciones) as landmarker, \
-            open(ruta_csv, "w", newline="") as f_csv:
+    landmarker = PoseLandmarker.create_from_options(opciones)
+    with open(ruta_csv, "w", newline="") as f_csv:
 
         escritor_csv = csv.writer(f_csv)
         escritor_csv.writerow(
@@ -188,11 +245,31 @@ def procesar_video(ruta_video, ruta_modelo, out_dir):
             t_ms = calcular_t_ms(idx, fps, ultimo_t_ms)
             ultimo_t_ms = t_ms
 
+            firma = firma_frame(frame)
+            if es_corte(firma_prev, firma):
+                cortes.append(idx)
+                landmarker.close()
+                landmarker = PoseLandmarker.create_from_options(opciones)
+            firma_prev = firma
+
             imagen_mp = mp.Image(
                 image_format=mp.ImageFormat.SRGB,
                 data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
             )
             resultado = landmarker.detect_for_video(imagen_mp, t_ms)
+
+            if detector_raqueta is not None:
+                for d in detector_raqueta.detect(imagen_mp).detections:
+                    b = d.bounding_box
+                    escritor_raqueta.writerow([
+                        idx, f"{d.categories[0].score:.3f}",
+                        f"{b.origin_x / ancho:.5f}", f"{b.origin_y / alto:.5f}",
+                        f"{(b.origin_x + b.width) / ancho:.5f}",
+                        f"{(b.origin_y + b.height) / alto:.5f}",
+                    ])
+                    x0, y0 = b.origin_x, b.origin_y
+                    cv2.rectangle(frame, (x0, y0), (x0 + b.width, y0 + b.height),
+                                  (255, 128, 0), 2)
 
             if resultado.pose_landmarks:
                 landmarks = resultado.pose_landmarks[0]
@@ -221,8 +298,16 @@ def procesar_video(ruta_video, ruta_modelo, out_dir):
             if frames_leidos % 50 == 0:
                 print(f"  {frames_leidos} frames procesados...")
 
+    landmarker.close()
+    if detector_raqueta is not None:
+        detector_raqueta.close()
+        f_raqueta.close()
     captura.release()
     escritor_video.release()
+    with open(ruta_cortes, "w", newline="") as f:
+        escritor = csv.writer(f)
+        escritor.writerow(["frame"])
+        escritor.writerows([c] for c in cortes)
 
     # ----- informe -----
     duracion_s = frames_leidos / fps
@@ -240,6 +325,7 @@ def procesar_video(ruta_video, ruta_modelo, out_dir):
     print(f"Frames leidos      : {frames_leidos}")
     print(f"Duracion           : {duracion_s:.2f} s")
     print(f"Frames sin deteccion: {frames_sin_deteccion} ({pct_sin:.2f} %)")
+    print(f"Cortes de escena   : {len(cortes)} {cortes[:20]}")
     print()
     print("Visibility de landmarks clave del lado derecho")
     print("(media y minima sobre frames CON deteccion; % sobre el total de frames leidos)")
@@ -262,6 +348,7 @@ def procesar_video(ruta_video, ruta_modelo, out_dir):
         "ruta_debug": ruta_debug,
         "frames_leidos": frames_leidos,
         "frames_sin_deteccion": frames_sin_deteccion,
+        "cortes": cortes,
     }
 
 
@@ -274,6 +361,9 @@ def main():
                         help="Ruta del .task de PoseLandmarker")
     parser.add_argument("--out-dir", default="data/processed",
                         help="Carpeta donde escribir el CSV y el video de debug")
+    parser.add_argument("--raqueta", metavar="MODELO",
+                        help="ObjectDetector COCO (p.ej. models/efficientdet_lite2.tflite) "
+                             "para detectar la raqueta en cada frame")
     args = parser.parse_args()
 
     if not os.path.isfile(args.video):
@@ -281,7 +371,10 @@ def main():
     if not os.path.isfile(args.model):
         sys.exit(f"ERROR: no existe el modelo {args.model}")
 
-    procesar_video(args.video, args.model, args.out_dir)
+    if args.raqueta and not os.path.isfile(args.raqueta):
+        sys.exit(f"ERROR: no existe el modelo {args.raqueta}")
+
+    procesar_video(args.video, args.model, args.out_dir, args.raqueta)
 
 
 if __name__ == "__main__":
