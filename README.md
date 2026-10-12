@@ -1,5 +1,8 @@
 # tennis-analyzer
 
+[![tests](https://github.com/rubenG1009/tennis-analyzer/actions/workflows/tests.yml/badge.svg)](https://github.com/rubenG1009/tennis-analyzer/actions/workflows/tests.yml)
+[![licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
+
 Análisis de técnica de golpes de tenis a partir de vídeo.
 
 ## Qué es
@@ -230,3 +233,7 @@ o lejanas. En el clip de prueba, la muñeca derecha solo alcanza el umbral en el
 
 - [docs/decisiones.md](docs/decisiones.md) — decisiones técnicas y por qué.
 - [docs/hallazgos.md](docs/hallazgos.md) — lo que se ha observado en clips reales.
+
+## Licencia
+
+MIT, ver [LICENSE](LICENSE). Los clips de referencia no se redistribuyen: `download_references.py` los baja de YouTube a `data/`, que no está en el repositorio.
