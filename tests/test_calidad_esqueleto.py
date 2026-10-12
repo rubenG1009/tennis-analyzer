@@ -348,7 +348,7 @@ def test_sin_piernas_visibles_no_hay_metricas_de_piernas():
     s = serie_de_golpe()
     n = len(s["torso"])
     s.update(codo=np.full(n, 150.0), rodilla=np.full(n, 160.0), tronco=np.full(n, 5.0),
-             apoyos=np.full(n, 0.4), velocidad=np.linspace(0, 1, n))
+             apoyos=np.full(n, 0.4), velocidad=np.linspace(0, 1, n), mirada=np.ones(n))
     con = mg.metricas(s, 20, "fondo", 60, vis_brazo=0.9, vis_piernas=0.9)
     sin = mg.metricas(s, 20, "fondo", 60, vis_brazo=0.9, vis_piernas=0.05)
     for clave in mg.METRICAS_PIERNAS:
