@@ -1,0 +1,52 @@
+clip,impacto,tolerancia,golpe,vista,nota
+fh_djokovic_1000fps,605,30,derecha,lateral,camara super lenta: la bola sigue en las cuerdas ~60 frames
+fh_dimitrov_lat,328,5,derecha,frontal,
+fh_kyrgios,238,4,derecha,frontal,
+fh_roddick_lat,430,10,derecha,frontal,oblicua ~45 grados
+fh_compilacion_espalda,35,10,derecha,espalda,
+fh_compilacion_espalda,322,10,derecha,espalda,
+fh_compilacion_espalda,462,10,derecha,espalda,
+fh_compilacion_espalda,590,10,derecha,espalda,
+fh_compilacion_espalda,728,10,derecha,espalda,
+fh_compilacion_espalda,868,10,derecha,espalda,
+fh_compilacion_espalda,1020,10,derecha,espalda,
+fh_compilacion_espalda,1200,10,derecha,espalda,
+bh_djokovic_1000fps,350,15,reves_2manos,lateral,
+sv_roddick,552,6,saque,frontal,
+sv_serena,84,4,saque,espalda,velocidad real
+sv_serena,450,8,saque,espalda,el mismo saque repetido en camara lenta
+sv_zverev_lat,184,8,saque,lateral,
+sv_zverev_lat,732,8,saque,lateral,
+rt_sinner_lat,50,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,123,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,200,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,272,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,352,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,448,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,482,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,554,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,635,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,709,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,783,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,860,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,946,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1021,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1098,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1180,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1252,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1325,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1405,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1484,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1577,2,reves_2manos,lateral,velocidad real 30 fps; verificado frame a frame
+rt_sinner_lat,1660,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame
+rt_alcaraz_lat,33,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,264,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,495,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,714,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,893,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,1166,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,1412,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,1664,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,1928,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,2456,10,derecha,frontal,velocidad real 60 fps; jugador lejos
+rt_alcaraz_lat,2738,10,derecha,frontal,velocidad real 60 fps; jugador lejos
