@@ -184,9 +184,10 @@ def main():
     fps, ancho, alto = metricas_golpe.info_video(args.video)
     corregir_esqueleto.corregir(f"{pre}_landmarks.csv", ancho, alto, f"{pre}_corregido.csv",
                                 f"{pre}_raqueta.csv", f"{pre}_cortes.csv", args.lado)
-    golpes = segmentar_golpes.segmentar(f"{pre}_corregido.csv", ancho, alto, fps,
-                                        f"{pre}_raqueta.csv", f"{pre}_cortes.csv", args.lado)
     quiero = "saque" if args.golpe == "saque" else "fondo"
+    golpes = segmentar_golpes.segmentar(f"{pre}_corregido.csv", ancho, alto, fps,
+                                        f"{pre}_raqueta.csv", f"{pre}_cortes.csv", args.lado,
+                                        solo=quiero)
     descartados = [g for g in golpes if g["tipo"] != quiero]
     golpes = [g for g in golpes if g["tipo"] == quiero]
 

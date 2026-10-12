@@ -354,3 +354,13 @@ def test_sin_piernas_visibles_no_hay_metricas_de_piernas():
     for clave in mg.METRICAS_PIERNAS:
         assert np.isfinite(con[clave]) and np.isnan(sin[clave])
     assert sin["terminacion"] == con["terminacion"]          # el resto no se toca
+
+
+def test_el_saque_nunca_cae_en_un_frame_sin_deteccion():
+    altura = np.full(100, -1.0)
+    altura[20:40] = 1.0
+    altura[30] = 3.0                                  # el maximo...
+    validos = np.ones(100, bool)
+    validos[30] = False                               # ...pero en un frame no valido
+    impactos = sg.impactos_de_saque(altura, validos)
+    assert len(impactos) == 1 and validos[impactos[0]]

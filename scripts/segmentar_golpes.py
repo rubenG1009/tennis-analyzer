@@ -128,7 +128,10 @@ def impactos_de_saque(altura, validos):
             unidos[-1] = (unidos[-1][0], b)
         else:
             unidos.append((a, b))
-    return [int(a + np.nanargmax(s.to_numpy()[a:b])) for a, b in unidos]
+    # el maximo solo entre frames validos: la media movil rellena los huecos
+    # y el maximo podia caer en un frame sin deteccion
+    s = np.where(validos, s.to_numpy(), np.nan)
+    return [int(a + np.nanargmax(s[a:b])) for a, b in unidos if np.isfinite(s[a:b]).any()]
 
 
 def zona_de_lanzamiento(altura_otra, margen):
@@ -158,7 +161,13 @@ def cobertura_raqueta(cajas, muneca, otra, torso):
 
 
 def segmentar(ruta_csv, ancho, alto, fps, ruta_raqueta=None, ruta_cortes=None,
-              lado="right"):
+              lado="right", solo=None):
+    """Golpes del clip. Con solo="fondo" no se buscan saques, y con
+    solo="saque" no se buscan golpes de fondo. Si se sabe que tipo de golpe
+    tiene el clip hay que decirlo: una preparacion alta de derecha, con la
+    raqueta por encima de la cabeza, pasaba por saque y ademas excluia los
+    golpes de fondo de alrededor (primer clip propio a 240 fps, 2026-10-12).
+    """
     n, xy, _ = cargar(ruta_csv, ancho, alto)
     torso = longitud_torso(xy)
     cadera = punto_medio(xy["left_hip"], xy["right_hip"])
@@ -174,14 +183,18 @@ def segmentar(ruta_csv, ancho, alto, fps, ruta_raqueta=None, ruta_cortes=None,
 
     torso_s = pd.Series(torso).rolling(15, center=True, min_periods=1).median().to_numpy()
     altura = (xy["nose"][:, 1] - muneca[:, 1]) / torso_s
-    saques = impactos_de_saque(altura, validos)
+    saques = [] if solo == "fondo" else impactos_de_saque(altura, validos)
 
     separacion = max(1, int(SEPARACION_MIN_S * fps))
     lanzamiento = zona_de_lanzamiento((xy["nose"][:, 1] - otra[:, 1]) / torso_s,
                                       int(EXCLUSION_SAQUE_S * fps))
     exclusion = int(EXCLUSION_SAQUE_S * fps)
-    picos = [p for p in picos_de_golpe(v, validos, separacion)
-             if not lanzamiento[p] and all(abs(p - q) > exclusion for q in saques)]
+    if solo == "saque":
+        picos = []
+    else:
+        picos = [p for p in picos_de_golpe(v, validos, separacion)
+                 if not (solo != "fondo" and lanzamiento[p])
+                 and all(abs(p - q) > exclusion for q in saques)]
     candidatos = sorted([(p, "saque") for p in saques] + [(p, "fondo") for p in picos])
 
     cajas = None
