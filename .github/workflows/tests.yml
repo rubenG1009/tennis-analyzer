@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python 3.9 como en local: mediapipe va clavado a 1.0.0 (ver
+      # docs/decisiones.md) y el proyecto no ha subido de version.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+
+      # opencv-python enlaza con libGL aunque no abra ventanas.
+      - name: Dependencias del sistema
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0
+
+      - name: Dependencias de Python
+        run: pip install --no-compile -r requirements.txt
+
+      # Los modelos no estan en el repo. Sin el lite, los tests de integracion
+      # se saltan en vez de fallar; con cache se bajan una sola vez.
+      - uses: actions/cache@v4
+        with:
+          path: models
+          key: modelos-${{ hashFiles('scripts/download_models.sh') }}
+
+      - name: Modelos
+        run: ./scripts/download_models.sh
+
+      - name: Tests
+        run: python -m pytest -v
