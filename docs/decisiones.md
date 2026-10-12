@@ -147,3 +147,102 @@ no se movieron: ningún `visibility` cae exactamente en 0.5, así que el informe
 sobre el clip de prueba da los mismos porcentajes que antes. El test que fijaba
 la asimetría ahora fija el criterio unificado, y hay otro que comprueba que los
 dos sitios siguen leyendo la misma constante.
+
+---
+
+## 2026-10-07 — yt-dlp se ejecuta con `uvx`, no desde el venv
+
+**Contexto.** La última versión de yt-dlp que funciona con Python 3.9 es
+2025.10.14, y YouTube ya la rechaza (`The page needs to be reloaded`). Las
+versiones actuales exigen Python ≥ 3.10 y un runtime de JS.
+
+**Decisión.** `download_references.py` llama a `uvx --python 3.12 --from
+"yt-dlp[default]" yt-dlp --js-runtimes node`. ffmpeg viene de `imageio-ffmpeg`,
+un binario estático instalable con pip.
+
+**Consecuencia.** El proyecto sigue en 3.9 sin tocar mediapipe, y no hay que
+instalar nada en el sistema salvo `uv` y `node`. Se descarga solo vídeo (sin
+audio) en H.264, así OpenCV lo lee sin sorpresas.
+
+---
+
+## 2026-10-07 — Recrear el `PoseLandmarker` en cada corte de escena
+
+**Contexto.** En modo VIDEO el modelo sigue la región del frame anterior. Tras
+un corte se queda enganchado a quien esté en esa zona (ver hallazgos).
+
+**Decisión.** Detectar cortes comparando cada frame con el anterior (diferencia
+media en grises sobre una miniatura de 64×36 > 18, o correlación de histograma
+H-S < 0,5) y recrear el landmarker. Los cortes se escriben en
+`<nombre>_cortes.csv`.
+
+**Consecuencia.** El histograma solo no basta: los cortes entre planos de la
+misma pista (Ruud) tienen los mismos colores y dan correlación 0,94. La
+diferencia en grises los separa: cortes reales ≥ 20, movimiento normal y
+barridos ≤ 15. Los fundidos desde negro cuentan como varios cortes seguidos, lo
+cual es inocuo. El contrato del CSV de landmarks no cambia.
+
+---
+
+## 2026-10-07 — La corrección va en un CSV aparte
+
+**Contexto.** Las inversiones y los picos se corrigen a posteriori.
+
+**Decisión.** `corregir_esqueleto.py` escribe `<nombre>_corregido.csv` con el
+mismo formato más una columna `correccion` (`volteo`, `pico` o vacía). El CSV
+original no se toca.
+
+**Consecuencia.** Lo que dijo el modelo y lo que se corrigió quedan separados y
+trazables por landmark y frame. Se puede reevaluar cualquier cambio en el
+corrector sin volver a pasar el modelo, que es lo caro.
+
+---
+
+## 2026-10-07 — Inversiones: Viterbi de cuerpo entero + ancla de raqueta
+
+**Contexto.** BlazePose voltea el cuerpo entero, no articulaciones sueltas, y la
+visibility no lo delata.
+
+**Decisión.** Por frame, dos estados ("tal cual" / "volteado"). Coste de
+transición: lo que se mueven hombros, codos, muñecas, caderas, rodillas y
+tobillos entre frames, en torsos. Coste de voltear: 0,1 por frame. Ancla: si la
+raqueta está a ≤ 0,3 torsos de una muñeca y la otra está al menos 0,8 torsos
+más lejos, el estado que deja la mano dominante lejos paga 1,0. La cadena se
+corta en frames sin detección, saltos de persona y cortes de escena.
+
+**Consecuencia.** La cara no participa en la decisión (es muy ruidosa de perfil
+y de espaldas) pero sí se voltea. La mano dominante es un parámetro (`--lado`);
+para zurdos hay que pasarlo. Sin raqueta detectada, un tramo donde el modelo se
+equivoque la mayor parte del tiempo queda coherente pero al revés.
+
+---
+
+## 2026-10-07 — La comparación con profesionales es por sesión, no por golpe
+
+**Contexto.** Comparar cada golpe con el p10–p90 de los golpes de referencia
+marcaba como "fuera de rango" a un profesional en el 26–44 % de las métricas
+(validación dejando fuera a cada jugador).
+
+**Decisión.** Mediana de cada métrica sobre los golpes del clip, comparada con
+[mín, máx] de las medianas por jugador de referencia ± 0,25 veces la dispersión
+p10–p90 típica de un jugador. Mínimo 3 jugadores por golpe y vista.
+
+**Consecuencia.** Un profesional queda dentro en ~88 % de las métricas. La
+herramienta habla de patrones de la sesión ("tus apoyos son más estrechos que
+los de cualquier profesional de referencia"), no de golpes sueltos. Con pocos
+jugadores de referencia los rangos son anchos y solo se marcan diferencias
+claras; es preferible a corregir algo que un profesional también hace.
+
+---
+
+## 2026-10-07 — Métricas del brazo solo con cámara lenta
+
+**Contexto.** A 30 fps el brazo sale movido en el impacto y BlazePose lo
+coloca mal sin bajar la visibility. Además, el ángulo del codo cambia 10–12°
+con 3 frames de error en el impacto.
+
+**Decisión.** `codo_impacto` e `impacto_delante` se calculan y se guardan, pero
+`analizar_clip.py` no los compara por debajo de 100 fps.
+
+**Consecuencia.** Con vídeo normal de móvil, el informe se apoya en piernas,
+tronco y apoyos. Para el brazo hay que grabar en cámara lenta.

@@ -19,13 +19,13 @@ esos números.
 
 ## Estado
 
-**Solo está implementada la etapa 1: extracción de landmarks.**
+**Implementadas las etapas 1 a 3. Falta el agente LLM.**
 
 | Etapa | Estado |
 |---|---|
-| 1. Vídeo -> serie temporal de landmarks | implementada |
-| 2. Segmentación de repeticiones | no empezada |
-| 3. Métricas biomecánicas | no empezada |
+| 1. Vídeo -> serie temporal de landmarks | implementada, con corrección de inversiones y evaluación de calidad |
+| 2. Segmentación de repeticiones | implementada (`segmentar_golpes.py`) |
+| 3. Métricas biomecánicas | implementada (`metricas_golpe.py`, `analizar_clip.py`) |
 | 4. Agente LLM e informe | no empezada |
 
 No hay backend, ni API, ni contenedores, y no está previsto añadirlos por ahora.
@@ -92,6 +92,57 @@ Por consola imprime un informe con la resolución, los fps, los frames leídos
 frente a los declarados, el porcentaje de frames sin detección y, para los
 landmarks del lado derecho, la `visibility` media, la mínima y el porcentaje de
 frames que alcanzan el umbral.
+
+## Clips de referencia y calidad del esqueleto
+
+```bash
+# 1. Bajar los clips de referencia de references/manifest.csv a data/raw/ref/
+#    (necesita uv y node; ver docs/decisiones.md)
+python scripts/download_references.py
+
+# 2. Extraer con deteccion de raqueta
+python scripts/extract_pose.py data/raw/ref/sv_roddick.mp4 \
+    --raqueta models/efficientdet_lite2.tflite --out-dir data/processed/ref
+
+# 3. Corregir inversiones izquierda/derecha y picos -> <nombre>_corregido.csv
+python scripts/corregir_esqueleto.py data/raw/ref/sv_roddick.mp4 \
+    data/processed/ref/sv_roddick_landmarks.csv
+
+# 4. Medir sintomas de error (pares video csv, tantos como se quiera)
+python scripts/evaluar_esqueleto.py \
+    data/raw/ref/sv_roddick.mp4 data/processed/ref/sv_roddick_landmarks.csv \
+    data/raw/ref/sv_roddick.mp4 data/processed/ref/sv_roddick_corregido.csv
+```
+
+Que mide el evaluador, que errores se encontraron y cuanto los reduce el
+corrector esta en [docs/hallazgos.md](docs/hallazgos.md).
+
+## Analizar un clip propio
+
+```bash
+python scripts/analizar_clip.py data/raw/mi_derecha.mp4 --golpe derecha --vista lateral
+```
+
+Hace todo el pipeline (landmarks, corrección, golpes, métricas) y compara la
+sesión con los profesionales de referencia. Antes hay que generar las
+referencias una vez:
+
+```bash
+python scripts/download_references.py
+# extraer + corregir cada clip de data/raw/ref/ en data/processed/ref_v2/ (ver arriba)
+python scripts/metricas_golpe.py referencias
+```
+
+Cómo grabar para que sirva:
+
+- **Un tipo de golpe por clip** (derecha o revés o saque): no se clasifican solos.
+- **Cámara lenta del móvil (120–240 fps)**: a 30 fps el brazo sale movido en el
+  impacto y las métricas del brazo no se comparan.
+- **Cámara a la altura de la cadera en el lateral de la pista**, como en los
+  clips de referencia, y el jugador entero en plano.
+- Solo diestros por ahora.
+
+Qué se compara y con qué fiabilidad está en [docs/hallazgos.md](docs/hallazgos.md).
 
 ## Tests
 
