@@ -295,3 +295,29 @@ frames de error en el impacto. A cambio, si el jugador encadena dos golpes sin
 pausa la búsqueda podría pasar de uno a otro; la histéresis (0,15 de altura,
 15° de giro) lo evita en todos los golpes de referencia.
 
+---
+
+## 2026-10-12 — Salirse del rango solo es "a revisar" en el sentido del defecto
+
+**Contexto.** La validación marcaba como fuera del rango a profesionales que
+simplemente hacen más: Alcaraz gira más y termina más alto que el resto. Un
+informe que le dice a alguien que gire menos porque gira más que Sinner es un
+mal consejo.
+
+**Decisión.** Cada métrica tiene en `diagnosticos.py` el sentido en el que
+salirse suele ser un defecto en un aficionado (poco giro, terminación baja,
+peso atrás, piernas rígidas...), o "ambos" cuando los dos lo son (apoyos,
+altura del impacto). El estado sigue diciendo lo que se midió; una columna
+nueva, `valoracion`, dice "a revisar" o "sin problema". Solo lo que está a
+revisar lleva diagnóstico: defecto habitual, causas, qué mirar en el vídeo y
+ejercicios. El LLM puede elegir ejercicios de esa lista y de ninguna otra parte.
+
+**Consecuencia.** Las falsas alarmas sobre profesionales bajan del 16 % al
+12 % (`validar_comparacion.py --fps 30`). Los diagnósticos y ejercicios son
+metodología general de enseñanza del tenis redactada para el proyecto, **no
+validada por un entrenador**: el informe los presenta como hipótesis a
+confirmar mirando el vídeo, y están todos en un único fichero de datos para
+que un entrenador pueda revisarlos sin tocar el resto. Un test comprueba que
+la tabla sigue siendo coherente (sin duplicados, sin diagnósticos para el
+sentido que no es un problema, ninguna métrica de derecha sin cubrir).
+

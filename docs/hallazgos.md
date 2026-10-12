@@ -353,8 +353,10 @@ Las nuevas quedan al nivel de las anteriores. Varios de los profesionales que
 caen fuera lo hacen **por encima**: Alcaraz termina más alto y gira más que el
 resto. Para un aficionado, quedarse por debajo en giro o terminación es lo que
 suele indicar un golpe de brazo; pasarse por arriba rara vez es un problema.
-Hoy la comparación no distingue el sentido; es lo siguiente que habría que
-añadir, junto con qué ejercicio sugerir en cada caso.
+Con el sentido de cada métrica (`diagnosticos.py`, ver decisiones), los
+profesionales marcados "a revisar" bajan del 16 % al 12 %. Los que quedan son
+estilos poco habituales: Sinner termina más bajo que los demás, Ymer juega con
+apoyos estrechos, Alcaraz se inclina más en el impacto.
 
 `peso_delante` es estable pero distingue poco: la dispersión entre golpes de un
 mismo jugador (0,3 torsos) es del orden de la diferencia entre jugadores. Por

@@ -9,8 +9,9 @@ se compara con el rango de los demas (analizar_clip.comparar). Un sistema bien
 calibrado deberia dejarlo "dentro del rango" casi siempre: cada vez que no, el
 informe le diria a un profesional que algo merece mirarse.
 
-Imprime el porcentaje de "dentro del rango" por metrica y en total, y quien
-cae fuera. Usa solo data/processed/metricas_referencia.csv: no vuelve a pasar
+Imprime el porcentaje de "dentro del rango" por metrica y en total, quien cae
+fuera y, de esos, a cuantos el informe les diria "a revisar" (fuera en el
+sentido que suele ser un defecto): esas son las falsas alarmas reales. Usa solo data/processed/metricas_referencia.csv: no vuelve a pasar
 el modelo.
 """
 
@@ -41,7 +42,8 @@ def dejar_uno_fuera(ref, fps):
                     filas.append({"golpe": golpe, "vista": vista, "jugador": jugador,
                                   "metrica": f["metrica"], "valor": f["valor"],
                                   "min": f["min"], "max": f["max"],
-                                  "dentro": f["estado"] == "dentro del rango"})
+                                  "dentro": f["estado"] == "dentro del rango",
+                                  "a_revisar": f["valoracion"] == "a revisar"})
     return pd.DataFrame(filas)
 
 
@@ -69,13 +71,16 @@ def main():
         print(f"  {metrica:16s} {100 * r['mean']:5.0f} %  ({r['size']:2d} comparaciones, "
               f"fiabilidad {r['fiabilidad']})")
     print(f"\n  {'TOTAL':16s} {100 * t['dentro'].mean():5.0f} %  ({len(t)} comparaciones)")
+    print(f"  {'falsas alarmas':16s} {100 * t['a_revisar'].mean():5.0f} %  "
+          "(profesional marcado 'a revisar')")
 
     fuera = t[~t["dentro"]]
     if len(fuera):
         print("\nFuera del rango:")
         for _, f in fuera.iterrows():
+            marca = "a revisar" if f["a_revisar"] else "sin problema"
             print(f"  {f['golpe']}/{f['vista']} {f['jugador']:14s} {f['metrica']:16s} "
-                  f"{f['valor']:7.2f}  [{f['min']:.2f} - {f['max']:.2f}]")
+                  f"{f['valor']:7.2f}  [{f['min']:.2f} - {f['max']:.2f}]  {marca}")
 
 
 if __name__ == "__main__":

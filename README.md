@@ -173,6 +173,14 @@ pudieron comparar y presentar "fuera de rango" como un error. Después, el
 script busca en el texto cifras que no salgan del informe y las avisa por
 consola.
 
+Cada métrica fuera del rango se valora según el sentido: girar menos que los
+profesionales es "a revisar", girar más es "sin problema". Lo que está a
+revisar lleva un diagnóstico orientativo de
+[scripts/diagnosticos.py](scripts/diagnosticos.py) (causas habituales, qué
+mirar en el vídeo y ejercicios), que el informe presenta como hipótesis. Esos
+diagnósticos son metodología general de tenis, no están validados por un
+entrenador.
+
 ## Tests
 
 ```bash

@@ -14,7 +14,15 @@ INFORME = {
         {"metrica": "rodilla_min", "valor": 127.33, "fiabilidad": "alta",
          "descripcion": "flexion maxima de rodillas en la carga",
          "unidad": "grados (180 = pierna recta)", "min": 92.05, "mediana": 120.0,
-         "max": 150.03, "jugadores": 7, "golpes": 40, "estado": "dentro del rango"},
+         "max": 150.03, "jugadores": 7, "golpes": 40, "estado": "dentro del rango",
+         "valoracion": "sin problema"},
+        {"metrica": "giro_hombros", "valor": 60.2, "fiabilidad": "media",
+         "descripcion": "amplitud del giro de hombros", "unidad": "grados",
+         "min": 71.4, "mediana": 90.0, "max": 111.0, "jugadores": 6, "golpes": 82,
+         "estado": "por debajo del rango", "valoracion": "a revisar",
+         "diagnostico": {"problema": "golpe de brazo", "causas": ["preparacion tardia"],
+                         "que_mirar": "la espalda en la preparacion",
+                         "ejercicios": ["sombras con giro", "balon medicinal"]}},
         {"metrica": "codo_impacto", "valor": 175.82, "fiabilidad": "baja",
          "descripcion": "extension del codo en el impacto",
          "unidad": "grados (180 = brazo recto)",
@@ -36,12 +44,24 @@ def test_la_tabla_lleva_rango_estado_y_fiabilidad():
     fila = ri.tabla_sesion(INFORME).splitlines()[2]
     assert "127.33" in fila
     assert "92.05 a 150.03 (7 jugadores, 40 golpes)" in fila
-    assert "dentro del rango" in fila and "alta" in fila
+    assert "| dentro del rango | sin problema | alta |" in fila
+
+
+def test_el_mensaje_lleva_el_diagnostico_de_lo_que_esta_a_revisar():
+    msg = ri.construir_mensaje(INFORME)
+    assert "### giro_hombros: golpe de brazo" in msg
+    assert "- sombras con giro" in msg
+    assert msg.count("###") == 1                      # solo lo que esta a revisar
+
+
+def test_sin_nada_a_revisar_no_hay_seccion_de_diagnosticos():
+    limpio = dict(INFORME, sesion=INFORME["sesion"][:1])
+    assert "Diagnosticos" not in ri.construir_mensaje(limpio)
 
 
 def test_metrica_sin_valor_ni_rango_sale_con_guiones():
-    fila = ri.tabla_sesion(INFORME).splitlines()[4]
-    assert "| - | - | sin dato" in fila
+    fila = ri.tabla_sesion(INFORME).splitlines()[5]
+    assert "| - | - | sin dato (brazo no visible) | - |" in fila
 
 
 def test_el_mensaje_da_el_contexto_del_clip():

@@ -55,9 +55,11 @@ Reglas, por orden de importancia:
 1. Usa solo los numeros de la tabla. No calcules metricas nuevas ni supongas \
 nada que la tabla no diga. Si citas un valor, redondealo como mucho a un \
 decimal.
-2. "fuera del rango" no significa "mal": significa que ningun profesional de \
-referencia lo hace asi de forma habitual. Presentalo como algo que merece \
-mirarse, nunca como un error seguro.
+2. La columna "valoracion" manda. "a revisar" significa que la metrica se sale \
+del rango de los profesionales en el sentido que suele ser un defecto; no es un \
+error seguro, es algo que merece mirarse. "sin problema" incluye lo que esta \
+dentro del rango y lo que se sale por el lado que no suele ser un defecto (por \
+ejemplo, girar mas que los profesionales): no lo presentes como algo a corregir.
 3. "dentro del rango" tampoco significa "perfecto": significa que es compatible \
 con lo que hacen los profesionales de referencia.
 4. Respeta la fiabilidad: las metricas de fiabilidad "media" mencionalas con \
@@ -66,7 +68,12 @@ dato" o "sin referencias suficientes": di solo por que no se han podido \
 valorar y que haria falta (por ejemplo, grabar en camara lenta de 120-240 fps).
 5. Si hay pocos golpes (menos de 5), avisa de que la sesion es corta y las \
 conclusiones son provisionales.
-6. No des consejos de tecnica que no se apoyen en una metrica de la tabla.
+6. Para cada metrica "a revisar" te paso un diagnostico orientativo: el \
+defecto habitual, sus causas, que mirar en el video y ejercicios. Presentalo \
+como hipotesis ("suele deberse a..."), propon que el jugador lo confirme mirando \
+su video y elige como mucho dos ejercicios de esa lista. No inventes otros \
+ejercicios ni des consejos de tecnica que no salgan de una metrica a revisar.
+7. Si hay varias cosas a revisar, empieza por las de fiabilidad alta.
 
 Formato, en Markdown:
 
@@ -75,7 +82,8 @@ Dos o tres frases con lo mas importante.
 
 ## Lo que ya haces como los profesionales
 ## Lo que merece mirarse
-(si no hay nada fuera de rango, dilo en una frase)
+Una subseccion por metrica "a revisar": que se ha medido, por que suele pasar, \
+como comprobarlo en el video y ejercicios. Si no hay ninguna, dilo en una frase.
 
 ## Lo que este analisis no ha podido valorar
 ## Para el proximo clip
@@ -89,14 +97,31 @@ def _fmt(v):
 
 def tabla_sesion(informe):
     """Tabla Markdown con una fila por metrica de la sesion. Funcion pura."""
-    filas = ["| metrica | que mide | unidad | valor | rango pro | estado | fiabilidad |",
-             "|---|---|---|---|---|---|---|"]
+    filas = ["| metrica | que mide | unidad | valor | rango pro | estado | valoracion "
+             "| fiabilidad |",
+             "|---|---|---|---|---|---|---|---|"]
     for m in informe["sesion"]:
         rango = (f"{_fmt(m['min'])} a {_fmt(m['max'])} "
                  f"({m['jugadores']} jugadores, {m['golpes']} golpes)") if "min" in m else "-"
         filas.append(f"| {m['metrica']} | {m['descripcion']} | {m['unidad']} | "
-                     f"{_fmt(m['valor'])} | {rango} | {m['estado']} | {m['fiabilidad']} |")
+                     f"{_fmt(m['valor'])} | {rango} | {m['estado']} | "
+                     f"{m.get('valoracion') or '-'} | {m['fiabilidad']} |")
     return "\n".join(filas)
+
+
+def texto_diagnosticos(informe):
+    """Diagnosticos de las metricas a revisar, en texto. Funcion pura."""
+    bloques = []
+    for m in informe["sesion"]:
+        d = m.get("diagnostico")
+        if not d:
+            continue
+        bloques.append("\n".join(
+            [f"### {m['metrica']}: {d['problema']}",
+             "Causas habituales: " + "; ".join(d["causas"]) + ".",
+             f"Que mirar en el video: {d['que_mirar']}.",
+             "Ejercicios:"] + [f"- {e}" for e in d["ejercicios"]]))
+    return "\n\n".join(bloques)
 
 
 def construir_mensaje(informe):
@@ -106,7 +131,9 @@ def construir_mensaje(informe):
             f"Golpes de {golpe} detectados: {informe['golpes_detectados']} "
             f"(valores de la sesion = mediana de esos golpes).\n\n"
             f"{tabla_sesion(informe)}\n\n"
-            "Redacta el informe.")
+            + (f"Diagnosticos orientativos de lo que esta a revisar:\n\n"
+               f"{texto_diagnosticos(informe)}\n\n" if texto_diagnosticos(informe) else "")
+            + "Redacta el informe.")
 
 
 def numeros_no_respaldados(texto, informe):

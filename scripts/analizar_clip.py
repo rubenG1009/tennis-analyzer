@@ -26,6 +26,10 @@ referencia (docs/hallazgos.md, 2026-10-07):
   colocado por el desenfoque a 30 fps. Solo se muestra comparacion si el video
   es de camara lenta (>= FPS_FIABLE_BRAZO).
 
+Cada metrica comparada lleva ademas su valoracion: salirse del rango solo es
+"a revisar" en el sentido que suele ser un defecto (poco giro de hombros, no
+mucho), y entonces lleva el diagnostico de scripts/diagnosticos.py.
+
 Escribe <nombre>_informe.json con todo, pensado para la etapa del LLM.
 """
 
@@ -39,6 +43,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import corregir_esqueleto  # noqa: E402
+import diagnosticos  # noqa: E402
 import extract_pose  # noqa: E402
 import metricas_golpe  # noqa: E402
 import segmentar_golpes  # noqa: E402
@@ -127,6 +132,10 @@ def comparar(metricas, ref, golpe, vista, fps):
                     fila["estado"] = "por encima del rango"
                 else:
                     fila["estado"] = "dentro del rango"
+        fila["valoracion"] = diagnosticos.valoracion(clave, fila["estado"])
+        diag = diagnosticos.diagnostico(clave, fila["estado"], golpe)
+        if diag:
+            fila["diagnostico"] = diag
         filas.append(fila)
     return filas
 
@@ -209,7 +218,10 @@ def main():
     for m in informe["sesion"]:
         v = "-" if m["valor"] is None else f"{m['valor']:.2f}"
         rango = f" [pro: {m['min']:.2f} - {m['max']:.2f}]" if "min" in m else ""
-        print(f"  {m['metrica']:16s} {v:>8s}{rango:28s} {m['estado']}  ({m['fiabilidad']})")
+        marca = "  <- a revisar" if m.get("valoracion") == "a revisar" else ""
+        print(f"  {m['metrica']:16s} {v:>8s}{rango:28s} {m['estado']}  ({m['fiabilidad']}){marca}")
+        if "diagnostico" in m:
+            print(f"  {'':16s} {m['diagnostico']['problema']}")
     print(f"\nInforme -> {ruta}")
 
 
