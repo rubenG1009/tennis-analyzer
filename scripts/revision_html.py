@@ -203,6 +203,103 @@ def miniatura(cap, frame, puntos, destino, alto=360):
     return True
 
 
+def recorte(cap, frame, xy, destino, alto=320, margen=0.35, espejo=False):
+    """JPG del frame recortado alrededor del esqueleto (con margen para la
+    raqueta) y dibujado encima: asi un profesional lejos de la camara y alguien
+    a dos metros se ven al mismo tamano."""
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
+    ok, im = cap.read()
+    if not ok:
+        return False
+    pts = np.array([xy[NOMBRES_LANDMARKS[p]][frame] for p in PUNTOS])
+    pts = pts[np.isfinite(pts).all(axis=1)]
+    if len(pts) < 6:
+        return False
+    (x0, y0), (x1, y1) = pts.min(0), pts.max(0)
+    lado = max(x1 - x0, y1 - y0) * (1 + 2 * margen)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    h, w = im.shape[:2]
+    a, b = int(max(cx - lado * 0.4, 0)), int(min(cx + lado * 0.4, w))
+    c, d = int(max(cy - lado / 2, 0)), int(min(cy + lado / 2, h))
+    trozo = im[c:d, a:b].copy()
+    k = alto / max(1, trozo.shape[0])
+    trozo = cv2.resize(trozo, (max(1, int(trozo.shape[1] * k)), alto))
+    for i, j in HUESOS:
+        p, q = xy[NOMBRES_LANDMARKS[PUNTOS[i]]][frame], xy[NOMBRES_LANDMARKS[PUNTOS[j]]][frame]
+        if not (np.isfinite(p).all() and np.isfinite(q).all()):
+            continue
+        izq = "left" in NOMBRES_LANDMARKS[PUNTOS[i]] or "left" in NOMBRES_LANDMARKS[PUNTOS[j]]
+        cv2.line(trozo, (int((p[0] - a) * k), int((p[1] - c) * k)),
+                 (int((q[0] - a) * k), int((q[1] - c) * k)),
+                 (214, 120, 42) if izq else (52, 104, 235), 2, cv2.LINE_AA)
+    if espejo:
+        trozo = cv2.flip(trozo, 1)
+    cv2.imwrite(destino, trozo, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return True
+
+
+def representativo(golpes, clave="giro_hombros"):
+    """Indice del golpe mas cercano a la mediana de `clave` (el mas tipico de
+    la sesion), o el primero si no hay datos. Funcion pura."""
+    v = np.array([np.nan if g.get(clave) is None else g[clave] for g in golpes], float)
+    if not len(v):
+        return None
+    if not np.isfinite(v).any():
+        return 0
+    return int(np.nanargmin(np.abs(v - np.nanmedian(v))))
+
+
+def fases_de(cap, xy, s, t, prefijo, destino, espejo=False):
+    """Recortes de maxima torsion, impacto y final del giro de un golpe."""
+    prep, fin = mg.momentos(s, t)
+    fotos = {}
+    for fase, f in (("preparacion", prep), ("impacto", t), ("final", fin)):
+        if f is not None and recorte(cap, int(f), xy, os.path.join(destino, f"{prefijo}_{fase}.jpg"),
+                                     espejo=espejo):
+            fotos[fase] = {"frame": int(f), "src": f"{prefijo}_{fase}.jpg"}
+    return fotos
+
+
+def comparativa(clip, video, procesado, destino, procesado_ref, videos_ref):
+    """Tu golpe tipico frente al golpe tipico de cada profesional con el mismo
+    golpe y vista, fase a fase y a la misma escala."""
+    ruta_ref = os.path.join(RAIZ, "data", "processed", "metricas_referencia.csv")
+    if not clip["golpes"] or not os.path.isfile(ruta_ref):
+        return []
+    ref = ac.cargar_referencias(ruta_ref)
+    ref = ref[(ref["golpe"] == clip["golpe"]) & (ref["vista"] == clip["vista"])]
+    filas = []
+    fps, ancho, alto = mg.info_video(video)
+    _, xy, vis = cargar(os.path.join(procesado, f"{clip['nombre']}_corregido.csv"), ancho, alto)
+    s = mg.series(xy, "right")
+    i = representativo(clip["golpes"])
+    g = clip["golpes"][i]
+    sentido = mg.direccion_golpe(s, int(g["impacto_frame"]))
+    cap = cv2.VideoCapture(video)
+    filas.append({"quien": "Tú", "golpe": g["n"], "giro_hombros": g.get("giro_hombros"),
+                  "fotos": fases_de(cap, xy, s, int(g["impacto_frame"]), "comp_tu", destino)})
+    cap.release()
+    for jugador, x in ref.groupby("jugador"):
+        x = x.reset_index(drop=True)
+        j = representativo(x.to_dict("records"))
+        fila = x.iloc[j]
+        v = os.path.join(videos_ref, f"{fila['clip']}.mp4")
+        if not os.path.isfile(v):
+            continue
+        fps_r, ancho_r, alto_r = mg.info_video(v)
+        _, xy_r, _ = cargar(os.path.join(procesado_ref, f"{fila['clip']}_corregido.csv"), ancho_r, alto_r)
+        s_r = mg.series(xy_r, "right")
+        # si golpea hacia el otro lado de la imagen, se muestra en espejo
+        espejo = bool(np.isfinite(sentido) and mg.direccion_golpe(s_r, int(fila["impacto"])) == -sentido)
+        cap = cv2.VideoCapture(v)
+        prefijo = "comp_" + "".join(ch for ch in jugador.lower() if ch.isalnum())
+        filas.append({"quien": jugador, "clip": fila["clip"], "giro_hombros": fila.get("giro_hombros"),
+                      "espejo": espejo,
+                      "fotos": fases_de(cap, xy_r, s_r, int(fila["impacto"]), prefijo, destino, espejo)})
+        cap.release()
+    return limpiar(filas)
+
+
 def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
     """Todo lo que pinta la plantilla, mas los ficheros de la carpeta del clip.
 
@@ -251,7 +348,7 @@ def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
     return clip, xy, cajas, corr
 
 
-def escribir_clip(clip, video, procesado, cajas, corr, sin_video=False):
+def escribir_clip(clip, video, procesado, cajas, corr, sin_video=False, ref_dirs=None):
     """Carpeta data/revision/<nombre>/ con index.html, datos.js, video y miniaturas."""
     pre = os.path.join(procesado, clip["nombre"])
     destino = os.path.join(DIR_REVISION, clip["nombre"])
@@ -280,6 +377,9 @@ def escribir_clip(clip, video, procesado, cajas, corr, sin_video=False):
 
     if not sin_video or not os.path.isfile(os.path.join(destino, "video.mp4")):
         recodificar(video, os.path.join(destino, "video.mp4"))
+
+    if ref_dirs and clip.get("grupo") == "propio":
+        clip["comparativa"] = comparativa(clip, video, procesado, destino, *ref_dirs)
 
     datos = {"clip": clip, "esqueleto": puntos, "originales": originales,
              "corregidas": marcadas, "cajas": cajas}
@@ -413,8 +513,10 @@ def main():
         parser.error("indica algun _informe.json o --referencias")
 
     trabajos = [desde_informe(r) for r in args.informes]
+    ref_dirs = (args.procesado_ref, args.videos_ref)
     for clip, video, procesado, cajas, corr in trabajos:
-        print(f"  {clip['nombre']} -> {escribir_clip(clip, video, procesado, cajas, corr, args.sin_video)}")
+        print(f"  {clip['nombre']} -> "
+              f"{escribir_clip(clip, video, procesado, cajas, corr, args.sin_video, ref_dirs)}")
     if args.referencias:
         for clip, video, procesado, cajas, corr in referencias(args.procesado_ref, args.videos_ref):
             print(f"  {clip['nombre']} -> {escribir_clip(clip, video, procesado, cajas, corr, args.sin_video)}")

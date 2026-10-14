@@ -117,6 +117,15 @@ details.diag ul { margin: 6px 0 0; padding-left: 18px; color: var(--tinta-2); }
 .valores dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .nota { color: var(--tinta-3); font-size: 12.5px; margin: 8px 0 0; }
 .vacio { color: var(--tinta-3); }
+.filtros-pro { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.comparativa { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 700px) { .comparativa { grid-template-columns: 1fr; } }
+.fase h3 { font-size: 13px; color: var(--tinta-3); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+.pareja { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pareja figure { margin: 0; background: #000; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+.pareja img { width: 100%; height: 260px; object-fit: contain; display: block; }
+.pareja figcaption { background: var(--superficie-2); color: var(--tinta-2); font-size: 12px; padding: 4px 8px; }
+.pareja figcaption b { color: var(--tinta); }
 kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border-bottom-width: 2px;
   border-radius: 4px; padding: 0 4px; background: var(--superficie-2); }
 </style>
@@ -190,6 +199,14 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border
     <h2>La sesión frente a los profesionales</h2>
     <p class="nota" id="nota-sesion"></p>
     <div class="tabla-env"><table id="tabla-sesion"></table></div>
+  </section>
+
+  <section class="tarjeta" id="bloque-comparativa" hidden>
+    <h2>Tú frente a un profesional, fase a fase</h2>
+    <p class="nota">Tu golpe más típico de la sesión (el más cercano a tu mediana de giro de hombros) frente al
+      golpe más típico de cada profesional con la misma vista. Recortados alrededor del cuerpo para verlos a la misma escala.</p>
+    <div class="filtros-pro" role="group" aria-label="Profesional" id="pros"></div>
+    <div class="comparativa" id="comparativa"></div>
   </section>
 
   <section class="tarjeta">
@@ -530,6 +547,27 @@ if (!C.golpes.length) {
     irA(+b.dataset.frame); $("lienzo").scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
+// ---------- comparativa ----------
+const CMP = C.comparativa || [];
+if (CMP.length > 1) {
+  $("bloque-comparativa").hidden = false;
+  const tu = CMP[0], pros = CMP.slice(1);
+  const FASES = [["preparacion", "Máxima torsión"], ["impacto", "Impacto"], ["final", "Final del giro"]];
+  const figura = (q, fase) => {
+    const f = (q.fotos || {})[fase];
+    return f ? `<figure><img src="${f.src}" alt="${esc(q.quien)}, ${fase}"><figcaption><b>${esc(q.quien)}</b> · giro ${fmt(q.giro_hombros, 0)}°${q.espejo ? " · en espejo" : ""}</figcaption></figure>`
+             : `<figure><figcaption><b>${esc(q.quien)}</b> · no se pudo situar</figcaption></figure>`;
+  };
+  const pintarCmp = (k) => {
+    $("comparativa").innerHTML = FASES.map(([fase, nombre]) =>
+      `<div class="fase"><h3>${nombre}</h3><div class="pareja">${figura(tu, fase)}${figura(pros[k], fase)}</div></div>`).join("");
+    $("pros").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.k === k));
+  };
+  $("pros").innerHTML = pros.map((p, k) => `<button data-k="${k}">${esc(p.quien)}</button>`).join("");
+  $("pros").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) pintarCmp(+b.dataset.k); });
+  pintarCmp(0);
+}
+
 dibujar();
 window.revision = { irA, frame: () => frameActual };   // para pruebas y capturas
 })();

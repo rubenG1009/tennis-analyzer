@@ -70,3 +70,11 @@ def test_resumen_para_el_indice():
     r = rh.resumen(clip)
     assert r["volteos"] == 4 and r["picos"] == 2 and r["a_revisar"] == ["giro_hombros"]
     assert r["grupo"] == "propio" and r["titulo"] == "x" and r["comparadas"] == 2
+
+
+def test_golpe_representativo_es_el_mas_cercano_a_la_mediana():
+    golpes = [{"giro_hombros": 60.0}, {"giro_hombros": 90.0}, {"giro_hombros": 84.0},
+              {"giro_hombros": None}, {"giro_hombros": 70.0}, {"giro_hombros": 76.0}]
+    assert rh.representativo(golpes) == 5          # mediana de 60, 70, 76, 84, 90 = 76
+    assert rh.representativo([{"giro_hombros": None}]) == 0
+    assert rh.representativo([]) is None
