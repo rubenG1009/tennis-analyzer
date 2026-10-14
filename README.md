@@ -194,6 +194,8 @@ python scripts/revision_html.py --referencias
 open data/revision/index.html
 ```
 
+![Línea de tiempo y sesión frente a los profesionales de un clip propio](docs/img/revision.png)
+
 Un informe HTML por vídeo, que se abre sin servidor: el vídeo con el
 esqueleto **corregido** dibujado encima (y el original donde el corrector
 cambió algo), una línea de tiempo clicable con detección, visibilidad,

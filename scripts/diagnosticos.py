@@ -41,21 +41,21 @@ DIAGNOSTICOS = [
     {
         "metrica": "giro_hombros", "sentido": ABAJO, "golpes": FONDO,
         "problema": "golpe de brazo: el tronco gira poco",
-        "causas": ["preparacion tardia o incompleta: los hombros no llegan a ponerse "
+        "causas": ["preparación tardía o incompleta: los hombros no llegan a ponerse "
                    "de lado antes de golpear",
                    "golpear con los pies y el pecho mirando a la red todo el gesto"],
-        "que_mirar": "en la preparacion, desde el lateral deberias ver casi toda tu "
-                     "espalda; despues del golpe, el pecho mirando hacia donde mandas la bola",
+        "que_mirar": "en la preparación, desde el lateral deberías ver casi toda tu "
+                     "espalda; después del golpe, el pecho mirando hacia donde mandas la bola",
         "ejercicios": ["sombras: girar los hombros hasta que el hombro contrario apunte a "
                        "la bola, pausa, y golpear dejando que el giro arrastre al brazo",
                        "preparar con la mano libre en el cuello de la raqueta y no soltarla "
-                       "hasta que los hombros esten de lado",
-                       "lanzamientos laterales con un balon medicinal ligero, girando el "
+                       "hasta que los hombros estén de lado",
+                       "lanzamientos laterales con un balón medicinal ligero, girando el "
                        "tronco con los brazos casi quietos"],
     },
     {
         "metrica": "terminacion", "sentido": ABAJO, "golpes": DERECHA,
-        "problema": "terminacion corta: el brazo se frena despues del impacto",
+        "problema": "terminación corta: el brazo se frena después del impacto",
         "causas": ["golpe empujado y plano en vez de de abajo arriba",
                    "frenar el brazo por miedo a que la bola se vaya larga"],
         "que_mirar": "donde acaba la raqueta: deberia pasar por encima del hombro "
@@ -67,7 +67,7 @@ DIAGNOSTICOS = [
     },
     {
         "metrica": "terminacion", "sentido": ABAJO, "golpes": ("reves_2manos",),
-        "problema": "terminacion corta: los brazos se frenan despues del impacto",
+        "problema": "terminación corta: los brazos se frenan después del impacto",
         "causas": ["golpe empujado y plano en vez de de abajo arriba"],
         "que_mirar": "donde acaban las manos: deberian terminar por encima del hombro "
                      "de la mano dominante",
@@ -76,38 +76,38 @@ DIAGNOSTICOS = [
     },
     {
         "metrica": "peso_delante", "sentido": ABAJO, "golpes": FONDO,
-        "problema": "peso atras en el impacto",
+        "problema": "peso atrás en el impacto",
         "causas": ["llegar tarde a la bola y golpear retrocediendo",
                    "colocarse demasiado cerca del bote"],
-        "que_mirar": "si despues del golpe te vas hacia atras o tienes que dar un paso "
-                     "atras para no perder el equilibrio",
+        "que_mirar": "si después del golpe te vas hacia atrás o tienes que dar un paso "
+                     "atrás para no perder el equilibrio",
         "ejercicios": ["con bola dada, golpear y aguantar dos segundos en equilibrio sobre "
                        "la pierna que queda delante",
-                       "colocarse un paso mas atras del bote para poder ir hacia la bola"],
+                       "colocarse un paso más atrás del bote para poder ir hacia la bola"],
     },
     {
         "metrica": "rodilla_min", "sentido": ARRIBA, "golpes": FONDO,
-        "problema": "piernas rigidas: flexionas poco antes de golpear",
+        "problema": "piernas rígidas: flexionas poco antes de golpear",
         "causas": ["golpear solo con el tren superior",
                    "colocarse con pasos largos en vez de ajustar con pasos cortos"],
-        "que_mirar": "si en la preparacion bajas la cadera o te quedas a la misma altura "
+        "que_mirar": "si en la preparación bajas la cadera o te quedas a la misma altura "
                      "que de pie",
-        "ejercicios": ["sombras bajando como para sentarte en la preparacion y empujando "
+        "ejercicios": ["sombras bajando como para sentarte en la preparación y empujando "
                        "hacia arriba al golpear",
                        "peloteo con bolas bajas que obliguen a flexionar"],
     },
     {
         "metrica": "rodilla_min", "sentido": ARRIBA, "golpes": SAQUE,
-        "problema": "poca flexion de piernas en el saque",
+        "problema": "poca flexión de piernas en el saque",
         "causas": ["sacar solo con el brazo, sin cargar las piernas durante el lanzamiento"],
         "que_mirar": "si las rodillas se doblan mientras sube la bola",
-        "ejercicios": ["sombras de saque marcando la flexion de rodillas al soltar la bola "
-                       "y la extension al golpear"],
+        "ejercicios": ["sombras de saque marcando la flexión de rodillas al soltar la bola "
+                       "y la extensión al golpear"],
     },
     {
         "metrica": "tronco_impacto", "sentido": ARRIBA, "golpes": FONDO,
         "problema": "tronco muy inclinado en el impacto",
-        "causas": ["llegar mal colocado y compensar inclinandose en vez de con los pies",
+        "causas": ["llegar mal colocado y compensar inclinándose en vez de con los pies",
                    "inclinarse para llegar a bolas bajas en vez de flexionar las piernas"],
         "que_mirar": "si la cabeza se va hacia un lado durante el golpe",
         "ejercicios": ["golpear y mantener la postura un segundo con la cabeza quieta",
@@ -117,16 +117,16 @@ DIAGNOSTICOS = [
         "metrica": "ancho_apoyos", "sentido": ABAJO, "golpes": FONDO,
         "problema": "apoyos estrechos en el impacto",
         "causas": ["golpear sin haber terminado de colocar los pies"],
-        "que_mirar": "la distancia entre los pies al golpear: algo mas que el ancho de "
+        "que_mirar": "la distancia entre los pies al golpear: algo más que el ancho de "
                      "los hombros",
-        "ejercicios": ["sombras con dos marcas en el suelo algo mas separadas que los "
+        "ejercicios": ["sombras con dos marcas en el suelo algo más separadas que los "
                        "hombros, golpeando con un pie en cada una"],
     },
     {
         "metrica": "ancho_apoyos", "sentido": ARRIBA, "golpes": FONDO,
         "problema": "apoyos muy abiertos en el impacto",
-        "causas": ["llegar estirado a la bola con un ultimo paso largo"],
-        "que_mirar": "si despues del golpe te cuesta recuperar la posicion",
+        "causas": ["llegar estirado a la bola con un último paso largo"],
+        "que_mirar": "si después del golpe te cuesta recuperar la posición",
         "ejercicios": ["ajustar con pasos cortos al final para llegar a la bola con la "
                        "base bajo el cuerpo"],
     },
@@ -156,9 +156,9 @@ DIAGNOSTICOS = [
     {
         "metrica": "impacto_delante", "sentido": ABAJO, "golpes": FONDO,
         "problema": "impacto tarde: golpeas la bola a la altura del cuerpo o detras",
-        "causas": ["preparacion tardia", "no ir hacia la bola"],
+        "causas": ["preparación tardía", "no ir hacia la bola"],
         "que_mirar": "si en el impacto la bola esta por delante del pie delantero",
-        "ejercicios": ["empezar la preparacion cuando la bola cruza la red",
+        "ejercicios": ["empezar la preparación cuando la bola cruza la red",
                        "atrapar la bola con la mano por delante del pie delantero, y luego "
                        "golpear en ese mismo punto"],
     },
@@ -168,7 +168,7 @@ DIAGNOSTICOS = [
         "causas": ["lanzamiento de bola bajo", "no extender el brazo ni el cuerpo hacia arriba"],
         "que_mirar": "si en el impacto el brazo esta estirado del todo",
         "ejercicios": ["lanzamientos sin golpear dejando caer la bola: deberia subir algo "
-                       "mas alto que la raqueta con el brazo estirado"],
+                       "más alto que la raqueta con el brazo estirado"],
     },
 ]
 
