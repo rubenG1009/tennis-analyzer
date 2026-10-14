@@ -415,3 +415,14 @@ def test_las_metricas_no_cambian_al_espejar_el_cuerpo():
     mb = mg.metricas(b, 30, "fondo", 240, 0.9, 0.9)
     for clave, v in ma.items():
         assert (np.isnan(v) and np.isnan(mb[clave])) or v == pytest.approx(mb[clave]), clave
+
+
+def test_la_carga_del_saque_empieza_en_su_propio_lanzamiento():
+    # dos lanzamientos (frames 10-19 y 60-69) e impacto en 80: la flexion se
+    # busca desde el segundo, no desde el saque anterior
+    n = 100
+    otra = np.full(n, -1.0)
+    otra[10:20] = 1.0
+    otra[60:70] = 1.0
+    s = {"alcance_otra": otra, "velocidad": np.zeros(n)}
+    assert mg.inicio_ventana_carga(s, 80, "saque") == 60

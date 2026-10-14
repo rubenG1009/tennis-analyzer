@@ -13,8 +13,8 @@ fh_compilacion_espalda,1020,10,derecha,espalda,
 fh_compilacion_espalda,1200,10,derecha,espalda,
 bh_djokovic_1000fps,350,15,reves_2manos,lateral,
 sv_roddick,552,6,saque,frontal,
-sv_serena,84,4,saque,espalda,velocidad real
-sv_serena,450,8,saque,espalda,el mismo saque repetido en camara lenta
+sv_serena,84,4,saque,lateral,velocidad real; de perfil en el impacto (de frente antes de sacar)
+sv_serena,450,8,saque,lateral,el mismo saque repetido en camara lenta
 sv_zverev_lat,184,8,saque,lateral,
 sv_zverev_lat,732,8,saque,lateral,
 rt_sinner_lat,50,2,derecha,lateral,velocidad real 30 fps; verificado frame a frame

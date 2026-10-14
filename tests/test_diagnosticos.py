@@ -80,3 +80,9 @@ def test_comparar_anade_valoracion_y_diagnostico():
                   for v in (40.0, 160.0))
     assert bajo["valoracion"] == "a revisar" and "diagnostico" in bajo
     assert alto["valoracion"] == "sin problema" and "diagnostico" not in alto
+
+
+def test_en_el_saque_inclinar_el_tronco_no_es_un_defecto():
+    assert dg.valoracion("tronco_impacto", "por encima del rango", "saque") == "sin problema"
+    assert dg.valoracion("tronco_impacto", "por encima del rango", "derecha") == "a revisar"
+    assert dg.diagnostico("tronco_impacto", "por encima del rango", "saque") is None

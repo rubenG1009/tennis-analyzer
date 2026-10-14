@@ -18,8 +18,10 @@ jugador queda de frente en un tipo de golpe y de espaldas en el otro.
 | fh_djokovic_1000fps, fh_dimitrov_lat, fh_kyrgios, fh_roddick_lat, bh_djokovic_1000fps, sv_roddick, sv_serena, sv_zverev_lat, rt_sinner_lat, rt_alcaraz_lat | todo el clip, a mano |
 | fh_compilacion_espalda | frames 0–1400, a mano |
 | rt_djokovic_lat, rt_alcaraz2_lat, rt_lehecka_lat, rt_ymer_lat, rt_nava_lat | automático + tipo a ojo |
+| sv_federer_lat, sv_alcaraz_tec, sv_osaka | automático + tipo y vista a ojo (2026-10-14) |
 | fh_ruud, bh_dimitrov_lat, bh_zverev, rt_fils_lat | nada |
 | rt_zheng_lat | excluido: cámara elevada por detrás |
 
 Los reveses cortados de rt_alcaraz2_lat están etiquetados `reves_cortado` y no
-entran en ninguna comparación. Todos los jugadores son diestros.
+entran en ninguna comparación. Todos los jugadores son diestros. La vista de cada golpe es la del momento
+del impacto (Serena está de frente antes de sacar pero de perfil al golpear).

@@ -256,10 +256,17 @@ def inicio_ventana_carga(s, t, tipo):
     """
     v = pd.Series(s["velocidad"]).rolling(5, center=True, min_periods=1).mean().to_numpy()
     if tipo == "saque":
-        arriba = np.flatnonzero(np.nan_to_num(s["alcance_otra"][max(t - MAX_VENTANA_CARGA, 0):t],
-                                              nan=-1) > 0.3)
-        if len(arriba):
-            return max(t - MAX_VENTANA_CARGA, 0) + int(arriba[0])
+        # el ULTIMO lanzamiento antes del impacto: el primero de la ventana
+        # podia ser el saque anterior o una repeticion en camara lenta, y la
+        # "flexion" salia de otro momento (rodillas a 10-56 grados, imposibles)
+        a = max(t - MAX_VENTANA_CARGA, 0)
+        arriba = np.nan_to_num(s["alcance_otra"][a:t], nan=-1) > 0.3
+        if arriba.any():
+            fin = int(np.flatnonzero(arriba)[-1])
+            inicio = fin
+            while inicio > 0 and arriba[inicio - 1]:
+                inicio -= 1
+            return a + inicio
     ref = np.nanmax(v[max(t - SUAVIZADO, 0):t + SUAVIZADO + 1]) if t < len(v) else np.nan
     t0 = t
     while t0 > 0 and t - t0 < MAX_VENTANA_CARGA and not (v[t0] < FRACCION_INICIO_GESTO * ref):

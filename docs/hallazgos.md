@@ -517,3 +517,39 @@ distintas en cada golpe. La dispersión de un profesional en partido mide la
 variedad de bolas, no su regularidad. Solo tendría sentido entre situaciones
 iguales (bola lanzada al mismo sitio).
 
+---
+
+## 2026-10-14 (3) — El saque ya se compara: tres clips nuevos y dos errores arreglados
+
+Hasta hoy el saque se medía pero no se comparaba (un solo profesional por
+vista). Se buscaron en YouTube saques de profesionales grabados de lado y se
+verificó cada uno a ojo con tiras de tres frames alrededor del impacto:
+
+| Clip | Saques | Vista en el impacto | |
+|---|---|---|---|
+| `sv_federer_lat` (Federer) | 1 | lateral | ✅ |
+| `sv_alcaraz_tec` (Alcaraz) | 7 | 6 lateral, 1 espalda | ✅ |
+| `sv_osaka` (Osaka) | 1 | espalda | ✅ |
+| Djokovic, entrenamiento de saque | — | cámara alta y lejana | ❌ descartado |
+
+**Anotación corregida: Serena.** Sus dos saques estaban como "espalda"; antes
+de sacar está de frente, pero en el impacto se la ve de perfil: lateral.
+Con eso el saque lateral queda con 4 jugadores (Zverev, Federer, Alcaraz,
+Serena) y el de espalda con 2.
+
+**Error de medida destapado: la flexión de rodillas del saque.** Salían 10°,
+34°, 51° y 56° (imposibles). La ventana empezaba en el PRIMER momento con la
+mano del lanzamiento sobre la cabeza en los 400 frames previos, que en clips
+con varios saques o repeticiones a cámara lenta caía en el saque anterior.
+Ahora empieza en el último lanzamiento antes del impacto: 115–146° en
+lateral. No se había notado porque el saque no se comparaba.
+
+**Inclinación del tronco en el saque: sin sentido de defecto.** Va de 23° a
+41° entre profesionales; es estilo. `diagnosticos.SENTIDO_POR_GOLPE` permite
+excepciones por golpe y para el saque la deja neutra.
+
+Validación con todo (`validar_comparacion.py --fps 30`): 80 % dentro del
+rango, 12 % de falsas alarmas. En el saque lateral, la única falsa alarma es
+el alcance de Serena (0,78 frente a 0,80–1,09); con 4 jugadores los rangos son
+el estilo de esos 4.
+

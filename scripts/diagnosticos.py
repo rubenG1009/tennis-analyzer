@@ -18,7 +18,7 @@ diagnostico. El informe lo presenta asi. Si un entrenador lo revisa, este es
 el unico fichero que hay que tocar.
 """
 
-ABAJO, ARRIBA, AMBOS = "abajo", "arriba", "ambos"
+ABAJO, ARRIBA, AMBOS, NINGUNO = "abajo", "arriba", "ambos", "ninguno"
 
 SENTIDO_PROBLEMA = {
     "rodilla_min": ARRIBA,      # angulo alto = pierna poco flexionada
@@ -32,6 +32,19 @@ SENTIDO_PROBLEMA = {
     "peso_delante": ABAJO,
     "alcance": ABAJO,
 }
+
+# Excepciones por golpe. En el saque inclinar el tronco es parte del gesto y
+# cambia mucho de un profesional a otro (23-41 grados en los de referencia):
+# salirse del rango no apunta a ningun defecto.
+SENTIDO_POR_GOLPE = {
+    ("saque", "tronco_impacto"): NINGUNO,
+}
+
+
+def sentido_problema(metrica, golpe=None):
+    """Sentido en que salirse del rango suele ser un defecto. Funcion pura."""
+    return SENTIDO_POR_GOLPE.get((golpe, metrica), SENTIDO_PROBLEMA.get(metrica, AMBOS))
+
 
 FONDO = ("derecha", "reves_2manos")
 DERECHA = ("derecha",)
@@ -173,21 +186,21 @@ DIAGNOSTICOS = [
 ]
 
 
-def valoracion(metrica, estado):
+def valoracion(metrica, estado, golpe=None):
     """'a revisar', 'sin problema' o None (si no se comparo). Funcion pura."""
     if estado == "dentro del rango":
         return "sin problema"
     sentido = {"por debajo del rango": ABAJO, "por encima del rango": ARRIBA}.get(estado)
     if sentido is None:
         return None
-    problema = SENTIDO_PROBLEMA.get(metrica, AMBOS)
+    problema = sentido_problema(metrica, golpe)
     return "a revisar" if problema in (AMBOS, sentido) else "sin problema"
 
 
 def diagnostico(metrica, estado, golpe):
     """Entrada de DIAGNOSTICOS para una metrica fuera del rango en su sentido
     problematico, o None. Funcion pura."""
-    if valoracion(metrica, estado) != "a revisar":
+    if valoracion(metrica, estado, golpe) != "a revisar":
         return None
     sentido = ABAJO if estado == "por debajo del rango" else ARRIBA
     for d in DIAGNOSTICOS:

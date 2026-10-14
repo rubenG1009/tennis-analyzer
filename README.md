@@ -47,8 +47,8 @@ Cómo grabar para que sirva: más abajo, en [Analizar un clip propio](#analizar-
 | 4. Diagnóstico e informe | diagnósticos orientativos (`diagnosticos.py`) e informe redactado (`redactar_informe.py`) |
 | Revisión visual | informe HTML por clip (`revision_html.py`) |
 
-Limitaciones actuales: derecha y revés comparables (el saque
-tiene un solo profesional de referencia); los diagnósticos son metodología
+Limitaciones actuales: derecha, revés y saque (de lado) comparables, con 4 a 6
+profesionales por golpe y vista; los diagnósticos son metodología
 general de tenis, no validados por un entrenador. Lo que se ha medido y cómo
 está en [docs/hallazgos.md](docs/hallazgos.md), y por qué se hizo así en
 [docs/decisiones.md](docs/decisiones.md).

@@ -135,8 +135,8 @@ def comparar(metricas, ref, golpe, vista, fps):
                     fila["estado"] = "por encima del rango"
                 else:
                     fila["estado"] = "dentro del rango"
-        fila["valoracion"] = diagnosticos.valoracion(clave, fila["estado"])
-        fila["sentido_problema"] = diagnosticos.SENTIDO_PROBLEMA.get(clave, diagnosticos.AMBOS)
+        fila["valoracion"] = diagnosticos.valoracion(clave, fila["estado"], golpe)
+        fila["sentido_problema"] = diagnosticos.sentido_problema(clave, golpe)
         diag = diagnosticos.diagnostico(clave, fila["estado"], golpe)
         if diag:
             fila["diagnostico"] = diag
