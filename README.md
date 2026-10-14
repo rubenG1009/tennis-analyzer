@@ -47,7 +47,7 @@ Cómo grabar para que sirva: más abajo, en [Analizar un clip propio](#analizar-
 | 4. Diagnóstico e informe | diagnósticos orientativos (`diagnosticos.py`) e informe redactado (`redactar_informe.py`) |
 | Revisión visual | informe HTML por clip (`revision_html.py`) |
 
-Limitaciones actuales: solo diestros; derecha y revés comparables (el saque
+Limitaciones actuales: derecha y revés comparables (el saque
 tiene un solo profesional de referencia); los diagnósticos son metodología
 general de tenis, no validados por un entrenador. Lo que se ha medido y cómo
 está en [docs/hallazgos.md](docs/hallazgos.md), y por qué se hizo así en
@@ -168,7 +168,8 @@ Cómo grabar para que sirva:
   impacto y las métricas del brazo no se comparan.
 - **Cámara a la altura de la cadera en el lateral de la pista**, como en los
   clips de referencia, y el jugador entero en plano.
-- Solo diestros por ahora.
+- Si eres zurdo, añade `--lado left`: las métricas no cambian al espejar el
+  cuerpo, así que te compara con los profesionales diestros igual de bien.
 
 Qué se compara y con qué fiabilidad está en [docs/hallazgos.md](docs/hallazgos.md).
 

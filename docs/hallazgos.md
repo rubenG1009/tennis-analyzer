@@ -477,3 +477,43 @@ Tu clip a 240 fps: 0 frames volteados. En el impacto las dos muñecas están
 juntas delante del cuerpo (brazo izquierdo extendido en la sombra), lo que
 en el vídeo da la impresión de un brazo cambiado; los datos dicen que no.
 
+---
+
+## 2026-10-14 (2) — Zurdos y una métrica de consistencia descartada
+
+### Zurdos: se comparan con los diestros sin más
+
+Todas las métricas se miden respecto al propio cuerpo, así que espejar el
+cuerpo (x → ancho − x, izquierda ↔ derecha) y medirlo con la otra mano no
+debería cambiar nada:
+
+- **Sobre el esqueleto**: el corregido de `rt_djokovic_lat` espejado y medido
+  con `lado="left"` da diferencia 0 en las 9 métricas de los 26 golpes (hay
+  un test sintético que lo fija).
+- **Pipeline completo**: el vídeo de Ymer espejado con ffmpeg (un "zurdo") y
+  analizado con `--lado left`, frente al original con `--lado right`, los dos
+  con Ymer fuera de las referencias:
+
+| | original | espejado como zurdo |
+|---|---|---|
+| golpes | 9 | 9 (8 los mismos) |
+| rodilla_min | 102,5 | 103,8 |
+| giro_hombros | 140,3 | 138,2 |
+| terminacion | 1,25 | 1,22 |
+| ancho_apoyos | 0,76 | 0,91 |
+| valoraciones | apoyos a revisar | idénticas |
+
+Las diferencias vienen de que MediaPipe ve otros píxeles y de un golpe
+distinto. `analizar_clip.py --lado left` queda habilitado.
+
+### Consistencia entre golpes: descartada
+
+La idea era comparar la dispersión de los golpes del usuario (p10–p90 de cada
+métrica) con la de cada profesional entre sus propios golpes. En derecha
+lateral, el usuario (7 sombras) sale más regular que los 6 profesionales en
+todo: giro 21° frente a 23–69°, rodillas 27° frente a 30–68°. No es mérito:
+las sombras repiten el mismo gesto sin bola y los profesionales juegan bolas
+distintas en cada golpe. La dispersión de un profesional en partido mide la
+variedad de bolas, no su regularidad. Solo tendría sentido entre situaciones
+iguales (bola lanzada al mismo sitio).
+

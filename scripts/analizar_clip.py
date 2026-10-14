@@ -172,7 +172,8 @@ def main():
                         help="Tipo de golpe del clip (de fondo no se clasifica solo)")
     parser.add_argument("--vista", required=True, choices=["lateral", "frontal", "espalda"])
     parser.add_argument("--lado", default="right", choices=["right", "left"],
-                        help="Mano dominante")
+                        help="Mano dominante (left para zurdos; se comparan con diestros "
+                             "porque las metricas no cambian al espejar el cuerpo)")
     parser.add_argument("--out-dir", default=os.path.join(RAIZ, "data", "processed"))
     parser.add_argument("--referencias",
                         default=os.path.join(RAIZ, "data", "processed", "metricas_referencia.csv"))
@@ -192,8 +193,10 @@ def main():
     if not os.path.isfile(args.referencias):
         sys.exit("ERROR: faltan las referencias; ejecuta "
                  "`python scripts/metricas_golpe.py referencias`")
-    if args.lado == "left":
-        sys.exit("ERROR: las referencias son todas de diestros; zurdo aun no soportado")
+    # Zurdos: las referencias son de diestros, pero todas las metricas se miden
+    # respecto al propio cuerpo y no cambian al espejarlo (comprobado: espejar
+    # un clip de referencia y medirlo como zurdo da diferencia 0 en todas). Basta
+    # con medir el lado dominante que toca.
 
     base = os.path.splitext(os.path.basename(args.video))[0]
     pre = os.path.join(args.out_dir, base)
@@ -227,6 +230,7 @@ def main():
               for c in medidos}
     informe = {
         "video": args.video, "golpe": args.golpe, "vista": args.vista, "fps": fps,
+        "lado": args.lado,
         "impactos": "a mano" if args.impactos else "automaticos",
         "golpes_detectados": len(golpes),
         "golpes_descartados_por_tipo": [g["impacto"] for g in descartados],

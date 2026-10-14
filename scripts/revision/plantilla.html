@@ -183,8 +183,8 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border
         <div class="panel">
           <h3>Leyenda</h3>
           <div class="leyenda">
-            <span class="muestra" style="background:var(--izq)"></span><span>Lado izquierdo</span>
-            <span class="muestra" style="background:var(--der)"></span><span>Lado derecho (dominante)</span>
+            <span class="muestra" style="background:var(--izq)"></span><span id="ley-izq">Lado izquierdo</span>
+            <span class="muestra" style="background:var(--der)"></span><span id="ley-der">Lado derecho (dominante)</span>
             <span class="muestra" style="height:8px;background:repeating-linear-gradient(90deg,#fff 0 5px,#3a3a38 5px 9px);border:2px solid #3a3a38"></span><span>Esqueleto original del modelo</span>
             <span class="muestra punto" style="border:2px solid var(--aviso)"></span><span>Articulación corregida</span>
             <span class="muestra" style="background:var(--raqueta)"></span><span>Raqueta detectada</span>
@@ -269,6 +269,7 @@ if (C.avisos && C.avisos.length) {
   $("avisos").innerHTML = C.avisos.map((a) => `<li>${esc(a)}</li>`).join("");
 }
 
+if (C.lado === "left") { $("ley-izq").textContent = "Lado izquierdo (dominante)"; $("ley-der").textContent = "Lado derecho"; }
 if (C.grupo === "propio" && C.consejos && C.consejos.length) {
   $("bloque-consejos").hidden = false;
   $("consejos").innerHTML = C.consejos.map((c) => `<li>${esc(c)}</li>`).join("");

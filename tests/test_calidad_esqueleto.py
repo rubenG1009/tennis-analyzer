@@ -393,3 +393,25 @@ def test_metrica_medida_en_pocos_golpes_lo_dice():
     estados = {f["metrica"]: f["estado"] for f in filas}
     assert estados["terminacion"] == "sin dato (solo se pudo medir en 1 de 7 golpes)"
     assert estados["rodilla_min"] == "dentro del rango"
+
+
+def test_las_metricas_no_cambian_al_espejar_el_cuerpo():
+    """Base del soporte de zurdos: un zurdo se compara con diestros porque
+    espejar el cuerpo (x -> ancho - x y cambiar izquierda por derecha) y
+    medirlo con el otro lado da las mismas metricas."""
+    from extract_pose import NOMBRES_LANDMARKS
+    rng = np.random.default_rng(0)
+    n, ancho = 60, 1000.0
+    base = {nombre: np.cumsum(rng.normal(0, 3, (n, 2)), axis=0) + rng.uniform(300, 700, 2)
+            for nombre in NOMBRES_LANDMARKS}
+    base["nose"][:, 1] -= 200                              # cabeza arriba
+    espejo = {ce.nombre_espejo(k): np.column_stack([ancho - v[:, 0], v[:, 1]])
+              for k, v in base.items()}
+    a = mg.series(base, "right")
+    b = mg.series(espejo, "left")
+    for s in (a, b):
+        s["vis_muneca"] = np.ones(n)
+    ma = mg.metricas(a, 30, "fondo", 240, 0.9, 0.9)
+    mb = mg.metricas(b, 30, "fondo", 240, 0.9, 0.9)
+    for clave, v in ma.items():
+        assert (np.isnan(v) and np.isnan(mb[clave])) or v == pytest.approx(mb[clave]), clave

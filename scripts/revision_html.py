@@ -307,7 +307,7 @@ def comparativa(clip, video, procesado, destino, procesado_ref, videos_ref):
     filas = []
     fps, ancho, alto = mg.info_video(video)
     _, xy, vis = cargar(os.path.join(procesado, f"{clip['nombre']}_corregido.csv"), ancho, alto)
-    s = mg.series(xy, "right")
+    s = mg.series(xy, clip.get("lado", "right"))
     i = representativo(clip["golpes"])
     g = clip["golpes"][i]
     sentido = mg.direccion_golpe(s, int(g["impacto_frame"]))
@@ -336,7 +336,7 @@ def comparativa(clip, video, procesado, destino, procesado_ref, videos_ref):
     return limpiar(filas)
 
 
-def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
+def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra, lado="right"):
     """Todo lo que pinta la plantilla, mas los ficheros de la carpeta del clip.
 
     golpes: lista de dicts con 'impacto_frame' y las metricas de ese golpe.
@@ -345,8 +345,8 @@ def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
     pre = os.path.join(procesado, nombre)
     fps, ancho, alto = mg.info_video(video)
     n, xy, vis = cargar(f"{pre}_corregido.csv", ancho, alto)
-    s = mg.series(xy, "right")
-    s["vis_muneca"] = np.nan_to_num(vis["right_wrist"], nan=0.0)
+    s = mg.series(xy, lado)
+    s["vis_muneca"] = np.nan_to_num(vis[f"{lado}_wrist"], nan=0.0)
 
     corr = leer_correcciones(f"{pre}_corregido.csv")
     volteos, picos = eventos_de_correccion(corr)
@@ -356,7 +356,7 @@ def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
         cortes = [int(f) for f in pd.read_csv(f"{pre}_cortes.csv")["frame"]]
 
     detectado = np.isfinite(vis["nose"]) | np.isfinite(vis["left_hip"])
-    brazo = np.nanmin(np.vstack([vis[f"right_{p}"] for p in ("shoulder", "elbow", "wrist")]), 0)
+    brazo = np.nanmin(np.vstack([vis[f"{lado}_{p}"] for p in ("shoulder", "elbow", "wrist")]), 0)
     piernas = np.nanmedian(np.vstack([vis[p] for p in mg.PUNTOS_PIERNAS]), 0)
 
     fichas = []
@@ -378,7 +378,7 @@ def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
         "volteos": volteos, "picos": picos, "cortes": cortes, "raqueta": tramos_raqueta,
         "golpes": fichas, "sesion": sesion, "con_golpes": True,
         "puntos": [NOMBRES_LANDMARKS[p] for p in PUNTOS], "huesos": HUESOS,
-        "escala": ESCALA, **extra,
+        "escala": ESCALA, "lado": lado, **extra,
     }
     clip["avisos"] = avisos(clip)
     clip["consejos"] = consejos_grabacion(clip)
@@ -473,7 +473,7 @@ def desde_informe(ruta_informe):
         with open(ruta_md) as f:
             extra["informe_texto"] = f.read()
     clip, _, cajas, corr = datos_clip(nombre, inf["video"], procesado, inf["golpe"], inf["vista"],
-                                      golpes, inf["sesion"], extra)
+                                      golpes, inf["sesion"], extra, inf.get("lado", "right"))
     return limpiar(clip), inf["video"], procesado, cajas, corr
 
 
