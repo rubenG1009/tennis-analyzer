@@ -115,6 +115,8 @@ details.diag ul { margin: 6px 0 0; padding-left: 18px; color: var(--tinta-2); }
 .valores { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin-top: 10px; font-size: 12.5px; }
 .valores dt { color: var(--tinta-3); }
 .valores dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.fuera { color: var(--tinta-3); font-weight: 600; }
+.fuera-mal { color: var(--serio-texto); font-weight: 700; }
 .nota { color: var(--tinta-3); font-size: 12.5px; margin: 8px 0 0; }
 .vacio { color: var(--tinta-3); }
 .filtros-pro { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
@@ -131,6 +133,8 @@ details.diag ul { margin: 6px 0 0; padding-left: 18px; color: var(--tinta-2); }
 .texto h4 { color: var(--tinta); font-size: 14px; margin: 14px 0 4px; }
 .texto ul { padding-left: 20px; }
 .texto strong { color: var(--tinta); }
+.consejos { margin: 0; padding-left: 22px; color: var(--tinta-2); }
+.consejos li { padding: 3px 0; }
 kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border-bottom-width: 2px;
   border-radius: 4px; padding: 0 4px; background: var(--superficie-2); }
 </style>
@@ -144,6 +148,11 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border
   <section class="tarjeta" id="bloque-avisos" hidden>
     <h2>Antes de fiarse de los números</h2>
     <ul class="avisos" id="avisos"></ul>
+  </section>
+
+  <section class="tarjeta" id="bloque-consejos" hidden>
+    <h2>Para el próximo vídeo</h2>
+    <ol class="consejos" id="consejos"></ol>
   </section>
 
   <section class="tarjeta">
@@ -222,6 +231,7 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border
 
   <section class="tarjeta">
     <h2 id="titulo-golpes">Golpes</h2>
+    <p class="nota" style="margin-top:-6px;margin-bottom:12px">↑ ↓ valor fuera del rango profesional; con <b class="fuera-mal">!</b> si es en el sentido que suele ser un defecto. Clic en una foto para ir a ese frame.</p>
     <div class="golpes" id="golpes"></div>
   </section>
 </div>
@@ -257,6 +267,11 @@ $("chips").innerHTML = chips.map(([k, v]) => `<li class="chip">${k} <b>${esc(v)}
 if (C.avisos && C.avisos.length) {
   $("bloque-avisos").hidden = false;
   $("avisos").innerHTML = C.avisos.map((a) => `<li>${esc(a)}</li>`).join("");
+}
+
+if (C.grupo === "propio" && C.consejos && C.consejos.length) {
+  $("bloque-consejos").hidden = false;
+  $("consejos").innerHTML = C.consejos.map((c) => `<li>${esc(c)}</li>`).join("");
 }
 
 // ---------- video y esqueleto ----------
@@ -537,6 +552,7 @@ if (!S || !S.length) {
 
 // ---------- golpes ----------
 $("titulo-golpes").textContent = `Golpes (${C.golpes.length})`;
+// S se define arriba (sesion); aqui se usa para marcar cada valor frente al rango
 const ETIQ = { preparacion: "Máx. torsión", impacto: "Impacto", final: "Final del giro" };
 const CAMPOS = ["giro_hombros", "terminacion", "rodilla_min", "tronco_impacto", "ancho_apoyos",
   "peso_delante", "altura_impacto", "codo_impacto", "impacto_delante", "alcance"];
@@ -549,8 +565,17 @@ if (!C.golpes.length) {
       return m ? `<button class="foto" data-frame="${m.frame}"><img src="${m.src}" alt="${ETIQ[k]}, frame ${m.frame}">
         <span>${ETIQ[k]} · ${m.frame}</span></button>` : `<div class="foto vacio"><span>${ETIQ[k]}: no se pudo situar</span></div>`;
     }).join("");
-    const vals = CAMPOS.filter((c) => c in g).map((c) => `<dt>${esc(NOMBRES[c] || c)}</dt><dd>${fmt(g[c])}</dd>`).join("");
-    return `<article class="tarjeta golpe" style="margin-top:0"><h3>Golpe ${g.n}<span>${fmt(g.impacto_s, 2)} s</span></h3>
+    const vals = CAMPOS.filter((c) => c in g).map((c) => {
+      const r = (S || []).find((m) => m.metrica === c), v = g[c];
+      let marca = "";
+      if (r && r.min != null && v != null && (v < r.min || v > r.max)) {
+        const lado = v < r.min ? "abajo" : "arriba";
+        const defecto = r.sentido_problema === "ambos" || r.sentido_problema === lado;
+        marca = `<span class="${defecto ? "fuera-mal" : "fuera"}" title="${lado === "abajo" ? "por debajo" : "por encima"} del rango profesional (${fmt(r.min)} a ${fmt(r.max)})">${lado === "abajo" ? "↓" : "↑"}${defecto ? " !" : ""}</span> `;
+      }
+      return `<dt>${esc(NOMBRES[c] || c)}</dt><dd>${marca}${fmt(v)}</dd>`;
+    }).join("");
+    return `<article class="tarjeta golpe" style="margin-top:0"><h3>Golpe ${g.n}<span>${fmt(g.impacto_s, 2)} s · frame ${g.impacto_frame}</span></h3>
       <div class="fotos">${fotos}</div><dl class="valores">${vals}</dl></article>`;
   }).join("");
   $("golpes").addEventListener("click", (e) => {

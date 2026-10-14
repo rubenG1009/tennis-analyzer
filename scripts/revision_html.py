@@ -168,6 +168,42 @@ def avisos(clip):
     return a
 
 
+def consejos_grabacion(clip):
+    """Que cambiar en la proxima grabacion, segun lo que fallo en esta.
+    Funcion pura sobre el dict de datos_clip. Cada consejo sale de un problema
+    medido, no de una lista fija."""
+    c = []
+    vis = clip["visible_pct"]
+    sesion = {m["metrica"]: m for m in clip.get("sesion") or []}
+    if clip["deteccion_pct"] < 90:
+        c.append("Que solo salgas tú y entero en el plano todo el rato: se perdió a la persona "
+                 f"en el {100 - clip['deteccion_pct']:.0f} % del vídeo.")
+    if vis["piernas"] < 50:
+        c.append("Aleja el móvil o ponlo más bajo, a la altura de la cadera: tus piernas solo se "
+                 f"ven en el {vis['piernas']:.0f} % del vídeo y sin ellas no se miden rodillas, "
+                 "apoyos ni peso.")
+    if vis["brazo dominante"] < 60:
+        c.append("Colócate de forma que el brazo de la raqueta quede del lado de la cámara: solo "
+                 f"se ve bien en el {vis['brazo dominante']:.0f} % del vídeo.")
+    term = sesion.get("terminacion", {})
+    if term.get("estado", "").startswith("sin dato"):
+        c.append("Mueve el móvil unos 45° hacia tu espalda: visto de lado, en la terminación la "
+                 "muñeca queda tapada por la cabeza y no se puede medir.")
+    if clip["fps"] < ac.FPS_FIABLE_BRAZO:
+        c.append("Graba en cámara lenta (120–240 fps): a velocidad normal el brazo sale movido en el "
+                 "impacto y el codo y el punto de impacto no se comparan.")
+    if clip.get("impactos") == "a mano":
+        c.append("Graba golpeando una bola (contra una pared o con alguien que te la lance): sin bola "
+                 "los impactos no se encuentran solos.")
+    if clip.get("con_golpes") and len(clip["golpes"]) < 10:
+        c.append(f"Graba más golpes, de 10 a 15: con {len(clip['golpes'])} las conclusiones son "
+                 "provisionales.")
+    if clip.get("grupo") == "propio" and clip["vista"] != "lateral":
+        c.append("Graba de lado (vista lateral): es la vista que mejor mide el giro de hombros y el "
+                 "peso, y la que tiene más profesionales de referencia.")
+    return c
+
+
 def recodificar(origen, destino):
     """Video H.264 sin audio, lado mayor LADO_VIDEO, mismos frames que el
     original (passthrough: el esqueleto se sincroniza por indice de frame)."""
@@ -345,6 +381,7 @@ def datos_clip(nombre, video, procesado, golpe, vista, golpes, sesion, extra):
         "escala": ESCALA, **extra,
     }
     clip["avisos"] = avisos(clip)
+    clip["consejos"] = consejos_grabacion(clip)
     return clip, xy, cajas, corr
 
 

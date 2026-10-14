@@ -78,3 +78,14 @@ def test_golpe_representativo_es_el_mas_cercano_a_la_mediana():
     assert rh.representativo(golpes) == 5          # mediana de 60, 70, 76, 84, 90 = 76
     assert rh.representativo([{"giro_hombros": None}]) == 0
     assert rh.representativo([]) is None
+
+
+def test_consejos_de_grabacion_salen_de_lo_que_fallo():
+    assert rh.consejos_grabacion(clip_base(vista="lateral", golpes=[{}] * 12)) == []
+    c = rh.consejos_grabacion(clip_base(
+        vista="frontal", grupo="propio", fps=30.0, impactos="a mano", golpes=[{}] * 7,
+        visible_pct={"brazo dominante": 80.0, "piernas": 5.0},
+        sesion=[{"metrica": "terminacion", "estado": "sin dato (solo se pudo medir en 1 de 7 golpes)"}]))
+    texto = " ".join(c)
+    for clave in ("piernas", "45°", "cámara lenta", "bola", "10 a 15", "de lado"):
+        assert clave in texto, clave
