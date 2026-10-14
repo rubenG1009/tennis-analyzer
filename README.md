@@ -123,8 +123,11 @@ corrector esta en [docs/hallazgos.md](docs/hallazgos.md).
 ## Analizar un clip propio
 
 ```bash
-python scripts/analizar_clip.py data/raw/mi_derecha.mp4 --golpe derecha --vista lateral
+python scripts/analizar_clip.py data/raw/mi_derecha.mp4 --golpe derecha --vista lateral --revision
 ```
+
+Con `--revision` genera también el informe visual del clip
+(`data/revision/<nombre>/index.html`, ver más abajo).
 
 Hace todo el pipeline (landmarks, corrección, golpes, métricas) y compara la
 sesión con los profesionales de referencia. Antes hay que generar las
@@ -195,8 +198,10 @@ Un informe HTML por vídeo, que se abre sin servidor: el vídeo con el
 esqueleto **corregido** dibujado encima (y el original donde el corrector
 cambió algo), una línea de tiempo clicable con detección, visibilidad,
 volteos, picos, raqueta y golpes, una ficha por golpe (máxima torsión, impacto
-y final del giro) y la sesión frente al rango de los profesionales con su
-diagnóstico. Se queda en `data/revision/`, fuera del repositorio: lleva tu
+y final del giro), tu golpe típico frente al de cada profesional fase a fase y
+a la misma escala, y la sesión frente al rango de los profesionales con su
+diagnóstico. Si ya existe el informe redactado (`redactar_informe.py`), aparece
+también. Se queda en `data/revision/`, fuera del repositorio: lleva tu
 vídeo.
 
 Para sombras sin bola, el pico de velocidad de la muñeca cae en la

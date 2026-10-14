@@ -430,6 +430,11 @@ def desde_informe(ruta_informe):
     nombre = os.path.basename(ruta_informe)[:-len("_informe.json")]
     golpes = [{k: v for k, v in g.items() if k != "impacto"} for g in inf["golpes"]]
     extra = {"titulo": nombre, "grupo": "propio", "impactos": inf.get("impactos", "automaticos")}
+    # el informe redactado por redactar_informe.py, si ya existe
+    ruta_md = os.path.join(procesado, f"{nombre}_informe.md")
+    if os.path.isfile(ruta_md):
+        with open(ruta_md) as f:
+            extra["informe_texto"] = f.read()
     clip, _, cajas, corr = datos_clip(nombre, inf["video"], procesado, inf["golpe"], inf["vista"],
                                       golpes, inf["sesion"], extra)
     return limpiar(clip), inf["video"], procesado, cajas, corr

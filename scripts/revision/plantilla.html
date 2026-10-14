@@ -126,6 +126,11 @@ details.diag ul { margin: 6px 0 0; padding-left: 18px; color: var(--tinta-2); }
 .pareja img { width: 100%; height: 260px; object-fit: contain; display: block; }
 .pareja figcaption { background: var(--superficie-2); color: var(--tinta-2); font-size: 12px; padding: 4px 8px; }
 .pareja figcaption b { color: var(--tinta); }
+.texto { max-width: 760px; color: var(--tinta-2); }
+.texto h3 { color: var(--tinta); font-size: 15px; margin: 18px 0 6px; }
+.texto h4 { color: var(--tinta); font-size: 14px; margin: 14px 0 4px; }
+.texto ul { padding-left: 20px; }
+.texto strong { color: var(--tinta); }
 kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border-bottom-width: 2px;
   border-radius: 4px; padding: 0 4px; background: var(--superficie-2); }
 </style>
@@ -193,6 +198,12 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border
     <h2>Línea de tiempo</h2>
     <div class="linea-env"><svg class="linea-tiempo" id="linea" role="img" aria-label="Línea de tiempo del clip: detección, visibilidad, correcciones, raqueta y golpes. Clic para ir a ese momento."></svg></div>
     <p class="nota">Clic en cualquier punto para ir a ese frame. Visibilidad: la línea punteada es el umbral 0,5 por debajo del cual una articulación no se usa.</p>
+  </section>
+
+  <section class="tarjeta" id="bloque-texto" hidden>
+    <h2>Informe del entrenador (redactado por Claude)</h2>
+    <div class="texto" id="texto"></div>
+    <p class="nota">Redactado a partir de la tabla de abajo, sin ver el vídeo. Los ejercicios son orientativos.</p>
   </section>
 
   <section class="tarjeta" id="bloque-sesion">
@@ -547,6 +558,25 @@ if (!C.golpes.length) {
     irA(+b.dataset.frame); $("lienzo").scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
+// ---------- informe redactado ----------
+// Markdown minimo (titulos, listas, negrita y parrafos), escapado antes de
+// convertir: el texto viene de un LLM y no se inserta tal cual.
+function markdown(md) {
+  const enLinea = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  let html = "", lista = false;
+  for (const linea of md.split("\n")) {
+    const l = linea.trim();
+    if (/^[-*] /.test(l)) { if (!lista) { html += "<ul>"; lista = true; } html += `<li>${enLinea(l.slice(2))}</li>`; continue; }
+    if (lista) { html += "</ul>"; lista = false; }
+    if (l.startsWith("### ")) html += `<h4>${enLinea(l.slice(4))}</h4>`;
+    else if (l.startsWith("## ")) html += `<h3>${enLinea(l.slice(3))}</h3>`;
+    else if (l.startsWith("# ")) html += `<h3>${enLinea(l.slice(2))}</h3>`;
+    else if (l) html += `<p>${enLinea(l)}</p>`;
+  }
+  return html + (lista ? "</ul>" : "");
+}
+if (C.informe_texto) { $("bloque-texto").hidden = false; $("texto").innerHTML = markdown(C.informe_texto); }
+
 // ---------- comparativa ----------
 const CMP = C.comparativa || [];
 if (CMP.length > 1) {

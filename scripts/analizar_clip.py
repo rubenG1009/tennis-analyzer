@@ -182,6 +182,8 @@ def main():
                              "Para sombras sin bola: el bucle de la preparacion es tan "
                              "rapido como el golpe y el segmentador no sabe donde esta el "
                              "contacto")
+    parser.add_argument("--revision", action="store_true",
+                        help="Genera tambien el informe visual (data/revision/<nombre>/index.html)")
     parser.add_argument("--reusar", action="store_true",
                         help="No vuelve a extraer landmarks si ya existe el CSV")
     args = parser.parse_args()
@@ -250,6 +252,16 @@ def main():
         if "diagnostico" in m:
             print(f"  {'':16s} {m['diagnostico']['problema']}")
     print(f"\nInforme -> {ruta}")
+
+    if args.revision:
+        import revision_html
+        clip, video, procesado, cajas, corr = revision_html.desde_informe(ruta)
+        destino = revision_html.escribir_clip(
+            clip, video, procesado, cajas, corr,
+            ref_dirs=(os.path.join(RAIZ, "data", "processed", "ref_v2"),
+                      os.path.join(RAIZ, "data", "raw", "ref")))
+        revision_html.escribir_indice()
+        print(f"Revision -> {os.path.join(destino, 'index.html')}")
 
 
 if __name__ == "__main__":
