@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisión del clip</title>
+<style>
+:root {
+  color-scheme: light;
+  --plano: #f9f9f7; --superficie: #fcfcfb; --superficie-2: #f3f2ee;
+  --tinta: #0b0b0b; --tinta-2: #52514e; --tinta-3: #898781;
+  --linea: #e1e0d9; --eje: #c3c2b7; --borde: rgba(11,11,11,.10);
+  --izq: #2a78d6; --der: #eb6834; --raqueta: #1baf7a; --neutro: #898781;
+  --bien: #0ca30c; --aviso: #fab219; --serio: #ec835a; --critico: #d03b3b;
+  --bien-texto: #006300; --serio-texto: #a8431a;
+  --banda: #e6e4dd; --foco: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plano: #0d0d0d; --superficie: #1a1a19; --superficie-2: #232321;
+    --tinta: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
+    --linea: #2c2c2a; --eje: #383835; --borde: rgba(255,255,255,.10);
+    --izq: #3987e5; --der: #d95926; --raqueta: #199e70;
+    --bien-texto: #0ca30c; --serio-texto: #ec835a; --banda: #383835; --foco: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plano: #0d0d0d; --superficie: #1a1a19; --superficie-2: #232321;
+  --tinta: #ffffff; --tinta-2: #c3c2b7; --tinta-3: #898781;
+  --linea: #2c2c2a; --eje: #383835; --borde: rgba(255,255,255,.10);
+  --izq: #3987e5; --der: #d95926; --raqueta: #199e70;
+  --bien-texto: #0ca30c; --serio-texto: #ec835a; --banda: #383835; --foco: #3987e5;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--plano); color: var(--tinta);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.pagina { max-width: 1280px; margin: 0 auto; padding: 24px 20px 64px; }
+a { color: var(--foco); }
+h1 { font-size: 22px; margin: 4px 0 8px; }
+h2 { font-size: 16px; margin: 0 0 12px; }
+.volver { font-size: 13px; text-decoration: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.chip { background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 999px;
+  padding: 2px 10px; font-size: 12.5px; color: var(--tinta-2); }
+.chip b { color: var(--tinta); font-weight: 600; }
+.tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px;
+  padding: 16px; margin-top: 16px; }
+.avisos { margin: 0; padding-left: 0; list-style: none; }
+.avisos li { padding: 4px 0 4px 26px; position: relative; color: var(--tinta-2); }
+.avisos li::before { content: "!"; position: absolute; left: 0; top: 5px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--aviso); color: #0b0b0b; font-weight: 700; font-size: 12px;
+  display: grid; place-items: center; }
+.visor { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .visor { grid-template-columns: 1fr; } }
+.lienzo { position: relative; background: #000; border-radius: 10px; overflow: hidden;
+  display: flex; justify-content: center; max-height: 72vh; }
+.lienzo video { display: block; max-width: 100%; max-height: 72vh; }
+.lienzo canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.controles { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+button, .boton { font: inherit; font-size: 13px; color: var(--tinta); background: var(--superficie-2);
+  border: 1px solid var(--borde); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--eje); }
+button[aria-pressed="true"] { background: var(--tinta); color: var(--superficie); }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.grupo-botones { display: inline-flex; gap: 2px; }
+.reloj { font-variant-numeric: tabular-nums; color: var(--tinta-2); font-size: 13px; margin-left: auto; }
+.panel h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--tinta-3);
+  margin: 0 0 8px; font-weight: 600; }
+.panel + .panel { margin-top: 18px; }
+.interruptor { display: flex; gap: 8px; align-items: center; padding: 3px 0; cursor: pointer; }
+.leyenda { display: grid; grid-template-columns: 22px 1fr; gap: 6px 8px; align-items: center;
+  font-size: 13px; color: var(--tinta-2); }
+.muestra { height: 4px; border-radius: 2px; }
+.muestra.punto { width: 12px; height: 12px; border-radius: 50%; }
+.estado-frame { font-size: 13px; color: var(--tinta-2); min-height: 3em; }
+.estado-frame b { color: var(--tinta); }
+.linea-env { overflow-x: auto; }
+.linea-tiempo { width: 100%; min-width: 760px; display: block; cursor: crosshair; user-select: none; }
+.linea-tiempo text { fill: var(--tinta-3); font-size: 11px; }
+.tooltip { position: fixed; pointer-events: none; background: var(--superficie); color: var(--tinta);
+  border: 1px solid var(--borde); border-radius: 8px; padding: 6px 9px; font-size: 12.5px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); z-index: 10; max-width: 280px; }
+.tabla-env { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; color: var(--tinta-3); font-size: 12px; text-transform: uppercase;
+  letter-spacing: .03em; padding: 6px 8px; border-bottom: 1px solid var(--linea); }
+td { padding: 8px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.metrica-nombre { font-weight: 600; }
+.metrica-desc { color: var(--tinta-3); font-size: 12.5px; }
+.pastilla { display: inline-flex; gap: 5px; align-items: center; border-radius: 999px; padding: 1px 9px 1px 4px;
+  font-size: 12.5px; white-space: nowrap; border: 1px solid var(--borde); }
+.pastilla .icono { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; color: #fff; }
+.p-revisar .icono { background: var(--serio); }
+.p-revisar { color: var(--serio-texto); }
+.p-bien .icono { background: var(--bien); }
+.p-bien { color: var(--bien-texto); }
+.p-nada .icono { background: var(--neutro); }
+.p-nada { color: var(--tinta-3); }
+details.diag { margin-top: 6px; }
+details.diag summary { cursor: pointer; color: var(--tinta-2); font-size: 13px; }
+details.diag ul { margin: 6px 0 0; padding-left: 18px; color: var(--tinta-2); }
+.golpes { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+.golpe h3 { font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; }
+.golpe h3 span { color: var(--tinta-3); font-weight: 400; font-size: 12.5px; }
+.fotos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.foto { border: 0; padding: 0; background: none; cursor: pointer; text-align: left; color: var(--tinta-2); }
+.foto img { width: 100%; aspect-ratio: auto; border-radius: 6px; display: block; background: #000;
+  object-fit: contain; max-height: 220px; }
+.foto span { font-size: 11.5px; display: block; margin-top: 3px; }
+.foto:hover img { outline: 2px solid var(--foco); }
+.valores { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin-top: 10px; font-size: 12.5px; }
+.valores dt { color: var(--tinta-3); }
+.valores dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.nota { color: var(--tinta-3); font-size: 12.5px; margin: 8px 0 0; }
+.vacio { color: var(--tinta-3); }
+kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--borde); border-bottom-width: 2px;
+  border-radius: 4px; padding: 0 4px; background: var(--superficie-2); }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <a class="volver" href="../index.html">← Todos los clips</a>
+  <h1 id="titulo">Revisión</h1>
+  <ul class="chips" id="chips"></ul>
+
+  <section class="tarjeta" id="bloque-avisos" hidden>
+    <h2>Antes de fiarse de los números</h2>
+    <ul class="avisos" id="avisos"></ul>
+  </section>
+
+  <section class="tarjeta">
+    <div class="visor">
+      <div>
+        <div class="lienzo" id="lienzo">
+          <video id="video" src="video.mp4" playsinline muted preload="auto"></video>
+          <canvas id="capa"></canvas>
+        </div>
+        <div class="controles">
+          <button id="b-play" aria-label="Reproducir">▶︎ Reproducir</button>
+          <button id="b-ant" title="Frame anterior (←)">‹ frame</button>
+          <button id="b-sig" title="Frame siguiente (→)">frame ›</button>
+          <button id="b-golpe-ant" title="Golpe anterior (J)">« golpe</button>
+          <button id="b-golpe-sig" title="Golpe siguiente (K)">golpe »</button>
+          <span class="grupo-botones" role="group" aria-label="Velocidad" id="velocidades"></span>
+          <span class="reloj" id="reloj">frame 0</span>
+        </div>
+      </div>
+      <aside>
+        <div class="panel">
+          <h3>Capas</h3>
+          <label class="interruptor"><input type="checkbox" id="t-esqueleto" checked> Esqueleto corregido</label>
+          <label class="interruptor"><input type="checkbox" id="t-original" checked> Original donde se corrigió</label>
+          <label class="interruptor"><input type="checkbox" id="t-marcas" checked> Resaltar articulaciones corregidas</label>
+          <label class="interruptor"><input type="checkbox" id="t-raqueta" checked> Caja de la raqueta</label>
+        </div>
+        <div class="panel">
+          <h3>Leyenda</h3>
+          <div class="leyenda">
+            <span class="muestra" style="background:var(--izq)"></span><span>Lado izquierdo</span>
+            <span class="muestra" style="background:var(--der)"></span><span>Lado derecho (dominante)</span>
+            <span class="muestra" style="height:8px;background:repeating-linear-gradient(90deg,#fff 0 5px,#3a3a38 5px 9px);border:2px solid #3a3a38"></span><span>Esqueleto original del modelo</span>
+            <span class="muestra punto" style="border:2px solid var(--aviso)"></span><span>Articulación corregida</span>
+            <span class="muestra" style="background:var(--raqueta)"></span><span>Raqueta detectada</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>En este frame</h3>
+          <div class="estado-frame" id="estado-frame" aria-live="polite"></div>
+        </div>
+        <div class="panel">
+          <h3>Teclado</h3>
+          <div class="nota"><kbd>Espacio</kbd> reproducir · <kbd>←</kbd><kbd>→</kbd> frame ·
+            <kbd>⇧</kbd>+<kbd>←</kbd><kbd>→</kbd> 10 frames · <kbd>J</kbd><kbd>K</kbd> golpe</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Línea de tiempo</h2>
+    <div class="linea-env"><svg class="linea-tiempo" id="linea" role="img" aria-label="Línea de tiempo del clip: detección, visibilidad, correcciones, raqueta y golpes. Clic para ir a ese momento."></svg></div>
+    <p class="nota">Clic en cualquier punto para ir a ese frame. Visibilidad: la línea punteada es el umbral 0,5 por debajo del cual una articulación no se usa.</p>
+  </section>
+
+  <section class="tarjeta" id="bloque-sesion">
+    <h2>La sesión frente a los profesionales</h2>
+    <p class="nota" id="nota-sesion"></p>
+    <div class="tabla-env"><table id="tabla-sesion"></table></div>
+  </section>
+
+  <section class="tarjeta">
+    <h2 id="titulo-golpes">Golpes</h2>
+    <div class="golpes" id="golpes"></div>
+  </section>
+</div>
+<div class="tooltip" id="tooltip" hidden></div>
+
+<script src="datos.js"></script>
+<script>
+(() => {
+"use strict";
+const D = window.DATOS, C = D.clip, E = D.escala || C.escala;
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 2) => v == null ? "—" : Number(v).toLocaleString("es-ES", { maximumFractionDigits: d });
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const NOMBRES = {
+  rodilla_min: "Flexión de rodillas", tronco_impacto: "Inclinación del tronco",
+  ancho_apoyos: "Separación de pies", altura_impacto: "Altura del impacto",
+  codo_impacto: "Extensión del codo", impacto_delante: "Impacto por delante",
+  terminacion: "Terminación", giro_hombros: "Giro de hombros",
+  peso_delante: "Peso delante", alcance: "Alcance (saque)",
+};
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// ---------- cabecera ----------
+document.title = `Revisión · ${C.titulo || C.nombre}`;
+$("titulo").textContent = C.titulo || C.nombre;
+const chips = [
+  ["Golpe", (C.golpe || "").replace("_", " ")], ["Vista", C.vista], ["FPS", fmt(C.fps, 1)],
+  ["Duración", `${fmt(C.duracion, 1)} s`], ["Resolución", `${C.ancho}×${C.alto}`],
+  ["Persona detectada", `${fmt(C.deteccion_pct, 1)} %`], ["Golpes", C.golpes.length],
+  ["Impactos", C.impactos || "automáticos"],
+];
+$("chips").innerHTML = chips.map(([k, v]) => `<li class="chip">${k} <b>${esc(v)}</b></li>`).join("");
+if (C.avisos && C.avisos.length) {
+  $("bloque-avisos").hidden = false;
+  $("avisos").innerHTML = C.avisos.map((a) => `<li>${esc(a)}</li>`).join("");
+}
+
+// ---------- video y esqueleto ----------
+const video = $("video"), capa = $("capa"), ctx = capa.getContext("2d");
+let fpsEf = C.fps, frameActual = 0;
+video.addEventListener("loadedmetadata", () => {
+  if (video.duration && isFinite(video.duration)) fpsEf = C.frames / video.duration;
+  // se abre en el primer impacto: el principio suele ser colocar el movil
+  if (C.golpes.length) irA(C.golpes[0].impacto_frame); else dibujar();
+});
+const frameDe = (t) => Math.max(0, Math.min(C.frames - 1, Math.round(t * fpsEf)));
+const irA = (f, pausar = true) => {
+  f = Math.max(0, Math.min(C.frames - 1, f));
+  if (pausar) video.pause();
+  video.currentTime = (f + 0.5) / fpsEf;
+  frameActual = f; dibujar();
+};
+const ladoDe = (i) => C.puntos[i].startsWith("left") ? "izq" : C.puntos[i].startsWith("right") ? "der" : "cen";
+
+function rectVideo() {
+  const r = capa.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  if (capa.width !== Math.round(r.width * dpr) || capa.height !== Math.round(r.height * dpr)) {
+    capa.width = Math.round(r.width * dpr); capa.height = Math.round(r.height * dpr);
+  }
+  const vw = video.videoWidth || C.ancho, vh = video.videoHeight || C.alto;
+  const k = Math.min(r.width / vw, r.height / vh);
+  return { x: (r.width - vw * k) / 2, y: (r.height - vh * k) / 2, w: vw * k, h: vh * k, dpr };
+}
+
+function trazar(pts, R, estilo) {
+  ctx.lineCap = "round";
+  for (const [a, b] of C.huesos) {
+    const p = pts[a], q = pts[b];
+    if (!p || !q) continue;
+    ctx.beginPath();
+    ctx.moveTo(R.x + p[0] / E * R.w, R.y + p[1] / E * R.h);
+    ctx.lineTo(R.x + q[0] / E * R.w, R.y + q[1] / E * R.h);
+    if (estilo === "original") {
+      ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    } else {
+      const l = ladoDe(a) === "cen" ? ladoDe(b) : ladoDe(a);
+      ctx.strokeStyle = l === "izq" ? css("--izq") : l === "der" ? css("--der") : "#ffffff";
+      ctx.lineWidth = 3; ctx.setLineDash([]);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  if (estilo !== "original") {
+    for (const p of pts) {
+      if (!p) continue;
+      ctx.beginPath(); ctx.arc(R.x + p[0] / E * R.w, R.y + p[1] / E * R.h, 3, 0, 2 * Math.PI);
+      ctx.fillStyle = "#ffffff"; ctx.fill();
+    }
+  }
+}
+
+function dibujar() {
+  const R = rectVideo(), f = frameActual;
+  ctx.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
+  ctx.clearRect(0, 0, capa.width, capa.height);
+  const pts = D.esqueleto.map((serie) => serie[f]);
+  const orig = D.originales[f];
+  if ($("t-original").checked && orig) {
+    const o = pts.slice();
+    for (const [i, xy] of Object.entries(orig)) o[+i] = xy;
+    trazar(o, R, "original");
+  }
+  if ($("t-esqueleto").checked) trazar(pts, R, "corregido");
+  const marcadas = D.corregidas[f];
+  if ($("t-marcas").checked && marcadas) {
+    ctx.strokeStyle = css("--aviso"); ctx.lineWidth = 2.5;
+    for (const i of marcadas) {
+      const p = pts[i]; if (!p) continue;
+      ctx.beginPath(); ctx.arc(R.x + p[0] / E * R.w, R.y + p[1] / E * R.h, 8, 0, 2 * Math.PI); ctx.stroke();
+    }
+  }
+  const caja = D.cajas[f];
+  if ($("t-raqueta").checked && caja) {
+    ctx.strokeStyle = css("--raqueta"); ctx.lineWidth = 2;
+    ctx.strokeRect(R.x + caja[0] / E * R.w, R.y + caja[1] / E * R.h,
+                   (caja[2] - caja[0]) / E * R.w, (caja[3] - caja[1]) / E * R.h);
+  }
+  $("reloj").textContent = `frame ${f.toLocaleString("es-ES")} / ${(C.frames - 1).toLocaleString("es-ES")} · ${fmt(f / C.fps, 2)} s`;
+  estadoFrame(f);
+  moverCursor(f);
+}
+
+function enTramo(lista, f) { return lista.some(([a, b]) => f >= a && f <= b); }
+function estadoFrame(f) {
+  const partes = [];
+  if (enTramo(C.sin_deteccion, f)) partes.push("<b>Sin detección</b> en este frame.");
+  if (enTramo(C.volteos, f)) partes.push("<b>Volteo corregido</b>: el modelo tenía izquierda y derecha intercambiadas.");
+  if (C.picos.includes(f)) partes.push("<b>Pico corregido</b>: un punto saltaba y se sustituyó por la media de sus vecinos.");
+  if (C.cortes.includes(f)) partes.push("<b>Corte de escena</b>.");
+  const g = C.golpes.find((x) => x.impacto_frame === f);
+  if (g) partes.push(`<b>Impacto del golpe ${g.n}</b>.`);
+  const marc = D.corregidas[f];
+  if (marc) partes.push(`Articulaciones tocadas: ${marc.map((i) => esc(C.puntos[i].replace("_", " "))).join(", ")}.`);
+  $("estado-frame").innerHTML = partes.length ? partes.join("<br>") : "<span class='vacio'>Nada que señalar: lo que dijo el modelo, sin tocar.</span>";
+}
+
+const tick = () => { frameActual = frameDe(video.currentTime); dibujar(); };
+if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
+  const bucle = () => { tick(); video.requestVideoFrameCallback(bucle); };
+  video.requestVideoFrameCallback(bucle);
+} else {
+  const bucle = () => { if (!video.paused) tick(); requestAnimationFrame(bucle); };
+  requestAnimationFrame(bucle);
+}
+video.addEventListener("seeked", tick);
+window.addEventListener("resize", dibujar);
+["t-esqueleto", "t-original", "t-marcas", "t-raqueta"].forEach((id) => $(id).addEventListener("change", dibujar));
+
+// ---------- controles ----------
+const bPlay = $("b-play");
+const ponerPlay = () => { bPlay.textContent = video.paused ? "▶︎ Reproducir" : "❚❚ Pausa"; };
+bPlay.onclick = () => (video.paused ? video.play() : video.pause());
+video.addEventListener("play", ponerPlay); video.addEventListener("pause", ponerPlay);
+$("b-ant").onclick = () => irA(frameActual - 1);
+$("b-sig").onclick = () => irA(frameActual + 1);
+const impactos = C.golpes.map((g) => g.impacto_frame);
+const golpeSig = (dir) => {
+  const c = dir > 0 ? impactos.find((f) => f > frameActual) : [...impactos].reverse().find((f) => f < frameActual);
+  if (c != null) irA(c);
+};
+$("b-golpe-ant").onclick = () => golpeSig(-1);
+$("b-golpe-sig").onclick = () => golpeSig(1);
+const velocidades = C.fps >= 100 ? [0.05, 0.125, 0.25, 1] : [0.1, 0.25, 0.5, 1];
+const vDefecto = C.fps >= 100 ? 0.125 : 0.25;
+$("velocidades").innerHTML = velocidades.map((v) =>
+  `<button data-v="${v}" aria-pressed="${v === vDefecto}">${fmt(v, 3)}×</button>`).join("");
+video.playbackRate = vDefecto;
+$("velocidades").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  video.playbackRate = +b.dataset.v;
+  $("velocidades").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input, textarea")) return;
+  const paso = e.shiftKey ? 10 : 1;
+  if (e.key === " ") { e.preventDefault(); bPlay.click(); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); irA(frameActual - paso); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); irA(frameActual + paso); }
+  else if (e.key.toLowerCase() === "j") golpeSig(-1);
+  else if (e.key.toLowerCase() === "k") golpeSig(1);
+});
+
+// ---------- linea de tiempo ----------
+const svg = $("linea"), NS = "http://www.w3.org/2000/svg";
+const ANCHO = 1000, IZQ = 118, DER = 8;
+const filas = [
+  { id: "deteccion", nombre: "Persona", alto: 14 },
+  { id: "brazo", nombre: "Brazo visible", alto: 30 },
+  { id: "piernas", nombre: "Piernas visibles", alto: 30 },
+  { id: "correcciones", nombre: "Correcciones", alto: 14 },
+  { id: "raqueta", nombre: "Raqueta", alto: 14 },
+  { id: "golpes", nombre: "Golpes", alto: 22 },
+];
+let y = 6; filas.forEach((f) => { f.y = y; y += f.alto + 10; });
+const ALTO = y + 14;
+svg.setAttribute("viewBox", `0 0 ${ANCHO} ${ALTO}`);
+const xDe = (f) => IZQ + (f / Math.max(1, C.frames - 1)) * (ANCHO - IZQ - DER);
+const fDe = (x) => Math.round((x - IZQ) / (ANCHO - IZQ - DER) * (C.frames - 1));
+const el = (tag, attrs, padre = svg) => {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  padre.appendChild(n); return n;
+};
+const fila = (id) => filas.find((f) => f.id === id);
+for (const f of filas) {
+  el("text", { x: 0, y: f.y + f.alto / 2 + 4 }).textContent = f.nombre;
+  el("rect", { x: IZQ, y: f.y, width: ANCHO - IZQ - DER, height: f.alto, fill: css("--superficie-2"), rx: 3 });
+}
+const tramo = (fl, a, b, color, minAncho = 1.5) => el("rect", {
+  x: xDe(a), y: fl.y + 1, width: Math.max(minAncho, xDe(b) - xDe(a)), height: fl.alto - 2, fill: color, rx: 2 });
+// deteccion: se pinta lo que falta
+const fd = fila("deteccion");
+el("rect", { x: IZQ, y: fd.y + 1, width: ANCHO - IZQ - DER, height: fd.alto - 2, fill: css("--bien"), opacity: .35, rx: 2 });
+C.sin_deteccion.forEach(([a, b]) => tramo(fd, a, b, css("--critico")));
+// visibilidad
+for (const id of ["brazo", "piernas"]) {
+  const fl = fila(id), serie = C.linea[id], n = serie.length;
+  const umbral = fl.y + fl.alto * 0.5;
+  el("line", { x1: IZQ, x2: ANCHO - DER, y1: umbral, y2: umbral, stroke: css("--eje"), "stroke-dasharray": "3 3" });
+  let d = "", abierto = false;
+  serie.forEach((v, i) => {
+    const x = IZQ + (i / Math.max(1, n - 1)) * (ANCHO - IZQ - DER);
+    if (v == null) { abierto = false; return; }
+    const yy = fl.y + fl.alto - v * fl.alto;
+    d += (abierto ? "L" : "M") + x.toFixed(1) + " " + yy.toFixed(1); abierto = true;
+  });
+  el("path", { d, fill: "none", stroke: css(id === "brazo" ? "--der" : "--izq"), "stroke-width": 1.5 });
+}
+// correcciones
+const fc = fila("correcciones");
+C.volteos.forEach(([a, b]) => tramo(fc, a, b, css("--aviso")));
+C.picos.forEach((p) => tramo(fc, p, p, css("--serio")));
+C.cortes.forEach((p) => el("line", { x1: xDe(p), x2: xDe(p), y1: filas[0].y, y2: ALTO - 14, stroke: css("--tinta-3"), "stroke-dasharray": "2 3" }));
+// raqueta
+const fr = fila("raqueta");
+C.raqueta.forEach(([a, b]) => tramo(fr, a, b, css("--raqueta")));
+// golpes
+const fg = fila("golpes");
+C.golpes.forEach((g) => {
+  if (g.preparacion != null && g.final != null)
+    el("rect", { x: xDe(g.preparacion), y: fg.y + 4, width: Math.max(2, xDe(g.final) - xDe(g.preparacion)), height: fg.alto - 8, fill: css("--eje"), rx: 3 });
+  const x = xDe(g.impacto_frame);
+  el("line", { x1: x, x2: x, y1: fg.y, y2: fg.y + fg.alto, stroke: css("--tinta"), "stroke-width": 2 });
+  const t = el("text", { x: x + 3, y: fg.y + 11 }); t.textContent = g.n; t.style.fill = css("--tinta");
+});
+// eje de segundos
+const pasoS = [1, 2, 5, 10, 15, 30, 60].find((s) => C.duracion / s <= 12) || 60;
+for (let s = 0; s <= C.duracion; s += pasoS) {
+  const t = el("text", { x: xDe(s * C.fps), y: ALTO - 2, "text-anchor": "middle" }); t.textContent = `${s} s`;
+}
+const cursor = el("line", { x1: IZQ, x2: IZQ, y1: 2, y2: ALTO - 14, stroke: css("--foco"), "stroke-width": 2 });
+function moverCursor(f) { const x = xDe(f); cursor.setAttribute("x1", x); cursor.setAttribute("x2", x); }
+
+const tip = $("tooltip");
+const puntoSvg = (e) => { const r = svg.getBoundingClientRect(); return (e.clientX - r.left) / r.width * ANCHO; };
+svg.addEventListener("mousemove", (e) => {
+  const x = puntoSvg(e); if (x < IZQ) { tip.hidden = true; return; }
+  const f = Math.max(0, Math.min(C.frames - 1, fDe(x)));
+  const i = Math.round(f / Math.max(1, C.frames - 1) * (C.linea.brazo.length - 1));
+  const lineas = [`<b>frame ${f.toLocaleString("es-ES")}</b> · ${fmt(f / C.fps, 2)} s`,
+    `Brazo visible: ${fmt(C.linea.brazo[i])} · piernas: ${fmt(C.linea.piernas[i])}`];
+  if (enTramo(C.sin_deteccion, f)) lineas.push("Sin detección");
+  if (enTramo(C.volteos, f)) lineas.push("Volteo corregido");
+  const g = C.golpes.find((g) => Math.abs(g.impacto_frame - f) <= C.frames / 300);
+  if (g) lineas.push(`Golpe ${g.n} (impacto en ${g.impacto_frame})`);
+  tip.innerHTML = lineas.join("<br>"); tip.hidden = false;
+  tip.style.left = Math.min(window.innerWidth - 290, e.clientX + 14) + "px"; tip.style.top = (e.clientY + 14) + "px";
+});
+svg.addEventListener("mouseleave", () => { tip.hidden = true; });
+svg.addEventListener("click", (e) => { const x = puntoSvg(e); if (x >= IZQ) irA(fDe(x)); });
+
+// ---------- sesion ----------
+function pastilla(m) {
+  if (m.valoracion === "a revisar") return `<span class="pastilla p-revisar"><span class="icono">!</span>a revisar</span>`;
+  if (m.valoracion === "sin problema") return `<span class="pastilla p-bien"><span class="icono">✓</span>sin problema</span>`;
+  return `<span class="pastilla p-nada"><span class="icono">–</span>no se valora</span>`;
+}
+function barra(m) {
+  if (m.min == null || m.valor == null) return `<span class="vacio">${esc(m.estado)}</span>`;
+  const lo = Math.min(m.min, m.valor), hi = Math.max(m.max, m.valor), pad = (hi - lo) * 0.12 || 1;
+  const a = lo - pad, b = hi + pad, W = 220, H = 26, X = (v) => (v - a) / (b - a) * W;
+  const color = m.valoracion === "a revisar" ? css("--serio") : css("--bien");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Rango profesional de ${fmt(m.min)} a ${fmt(m.max)}; tu valor ${fmt(m.valor)}">
+    <rect x="${X(m.min)}" y="8" width="${Math.max(2, X(m.max) - X(m.min))}" height="10" rx="3" fill="${css("--banda")}"/>
+    ${m.mediana != null ? `<line x1="${X(m.mediana)}" x2="${X(m.mediana)}" y1="6" y2="20" stroke="${css("--tinta-3")}" stroke-width="1.5"/>` : ""}
+    <circle cx="${X(m.valor)}" cy="13" r="6" fill="${color}" stroke="${css("--superficie")}" stroke-width="2"/>
+  </svg>`;
+}
+const S = C.sesion;
+if (!S || !S.length) {
+  $("bloque-sesion").querySelector(".tabla-env").innerHTML = "<p class='vacio'>Sin golpes medidos: no hay sesión que comparar.</p>";
+} else {
+  $("nota-sesion").textContent = (C.nota_comparacion ? C.nota_comparacion + ". " : "") +
+    "Valor de la sesión = mediana de los golpes. La banda gris es el rango de los profesionales de referencia con la misma vista, la raya su mediana y el punto tu valor.";
+  const cab = "<thead><tr><th>Métrica</th><th class='num'>Valor</th><th>Rango profesional</th><th>Valoración</th><th>Fiabilidad</th><th class='num'>Golpes</th></tr></thead>";
+  const cuerpo = S.map((m) => {
+    const d = m.diagnostico;
+    const diag = d ? `<details class="diag"><summary>${esc(d.problema)} — causas y ejercicios</summary>
+      <ul><li><b>Causas habituales:</b> ${d.causas.map(esc).join("; ")}.</li>
+      <li><b>Qué mirar en el vídeo:</b> ${esc(d.que_mirar)}.</li>
+      ${d.ejercicios.map((x) => `<li>Ejercicio: ${esc(x)}</li>`).join("")}</ul>
+      <p class="nota">Orientativo: metodología general, no validada por un entrenador.</p></details>` : "";
+    return `<tr><td><div class="metrica-nombre">${esc(NOMBRES[m.metrica] || m.metrica)}</div>
+        <div class="metrica-desc">${esc(m.descripcion)} · ${esc(m.unidad)}</div>${diag}</td>
+      <td class="num">${fmt(m.valor)}</td>
+      <td>${barra(m)}${m.min != null ? `<div class="metrica-desc">${fmt(m.min)} a ${fmt(m.max)} · ${m.jugadores} jugadores</div>` : ""}</td>
+      <td>${pastilla(m)}<div class="metrica-desc">${esc(m.estado)}</div></td>
+      <td>${esc(m.fiabilidad)}</td><td class="num">${m.golpes_medidos ?? "—"}</td></tr>`;
+  }).join("");
+  $("tabla-sesion").innerHTML = cab + "<tbody>" + cuerpo + "</tbody>";
+}
+
+// ---------- golpes ----------
+$("titulo-golpes").textContent = `Golpes (${C.golpes.length})`;
+const ETIQ = { preparacion: "Máx. torsión", impacto: "Impacto", final: "Final del giro" };
+const CAMPOS = ["giro_hombros", "terminacion", "rodilla_min", "tronco_impacto", "ancho_apoyos",
+  "peso_delante", "altura_impacto", "codo_impacto", "impacto_delante", "alcance"];
+if (!C.golpes.length) {
+  $("golpes").innerHTML = "<p class='vacio'>No hay golpes en este clip.</p>";
+} else {
+  $("golpes").innerHTML = C.golpes.map((g) => {
+    const fotos = ["preparacion", "impacto", "final"].map((k) => {
+      const m = (g.miniaturas || {})[k];
+      return m ? `<button class="foto" data-frame="${m.frame}"><img src="${m.src}" alt="${ETIQ[k]}, frame ${m.frame}">
+        <span>${ETIQ[k]} · ${m.frame}</span></button>` : `<div class="foto vacio"><span>${ETIQ[k]}: no se pudo situar</span></div>`;
+    }).join("");
+    const vals = CAMPOS.filter((c) => c in g).map((c) => `<dt>${esc(NOMBRES[c] || c)}</dt><dd>${fmt(g[c])}</dd>`).join("");
+    return `<article class="tarjeta golpe" style="margin-top:0"><h3>Golpe ${g.n}<span>${fmt(g.impacto_s, 2)} s</span></h3>
+      <div class="fotos">${fotos}</div><dl class="valores">${vals}</dl></article>`;
+  }).join("");
+  $("golpes").addEventListener("click", (e) => {
+    const b = e.target.closest(".foto[data-frame]"); if (!b) return;
+    irA(+b.dataset.frame); $("lienzo").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+dibujar();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tennis-analyzer · revisión de clips</title>
+<style>
+:root {
+  color-scheme: light;
+  --plano: #f9f9f7; --superficie: #fcfcfb; --superficie-2: #f3f2ee;
+  --tinta: #0b0b0b; --tinta-2: #52514e; --tinta-3: #898781; --borde: rgba(11,11,11,.10);
+  --foco: #2a78d6; --serio: #ec835a; --serio-texto: #a8431a; --aviso: #fab219; --bien: #0ca30c; --bien-texto: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark; --plano: #0d0d0d; --superficie: #1a1a19; --superficie-2: #232321;
+    --tinta: #fff; --tinta-2: #c3c2b7; --tinta-3: #898781; --borde: rgba(255,255,255,.10);
+    --foco: #3987e5; --serio-texto: #ec835a; --bien-texto: #0ca30c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark; --plano: #0d0d0d; --superficie: #1a1a19; --superficie-2: #232321;
+  --tinta: #fff; --tinta-2: #c3c2b7; --tinta-3: #898781; --borde: rgba(255,255,255,.10);
+  --foco: #3987e5; --serio-texto: #ec835a; --bien-texto: #0ca30c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--plano); color: var(--tinta);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.pagina { max-width: 1280px; margin: 0 auto; padding: 28px 20px 64px; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+.sub { color: var(--tinta-2); margin: 0 0 18px; max-width: 760px; }
+.filtros { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+button { font: inherit; font-size: 13px; color: var(--tinta); background: var(--superficie-2);
+  border: 1px solid var(--borde); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--tinta); color: var(--superficie); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.clip { display: grid; grid-template-columns: 96px 1fr; gap: 12px; background: var(--superficie);
+  border: 1px solid var(--borde); border-radius: 12px; padding: 10px; text-decoration: none; color: inherit; }
+.clip:hover { border-color: var(--foco); }
+.clip img { width: 96px; height: 128px; object-fit: cover; border-radius: 8px; background: #000; }
+.clip h2 { font-size: 14px; margin: 0 0 4px; line-height: 1.3; }
+.datos { font-size: 12.5px; color: var(--tinta-2); }
+.etiqueta { display: inline-block; font-size: 11.5px; border-radius: 999px; padding: 0 8px;
+  border: 1px solid var(--borde); margin: 4px 4px 0 0; color: var(--tinta-2); }
+.etiqueta.revisar { color: var(--serio-texto); }
+.etiqueta.revisar::before { content: "! "; font-weight: 700; }
+.etiqueta.bien { color: var(--bien-texto); }
+.etiqueta.bien::before { content: "✓ "; }
+.vacio { color: var(--tinta-3); }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <h1>Revisión de clips</h1>
+  <p class="sub">Un informe por vídeo: el esqueleto corregido sobre el vídeo, qué se corrigió y dónde,
+    los golpes encontrados y la sesión frente a los profesionales. Los clips de referencia muestran a
+    cada profesional comparado con los demás: lo que le marcaría el informe es una falsa alarma.</p>
+  <div class="filtros" role="group" aria-label="Filtrar clips">
+    <button data-g="todos" aria-pressed="true">Todos</button>
+    <button data-g="propio" aria-pressed="false">Propios</button>
+    <button data-g="referencia" aria-pressed="false">Referencia</button>
+  </div>
+  <div class="rejilla" id="rejilla"></div>
+</div>
+<script>
+(() => {
+"use strict";
+const CLIPS = /*DATOS*/[];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (v, d = 1) => Number(v).toLocaleString("es-ES", { maximumFractionDigits: d });
+function pintar(grupo) {
+  const lista = CLIPS.filter((c) => grupo === "todos" || c.grupo === grupo);
+  document.getElementById("rejilla").innerHTML = lista.length ? lista.map((c) => {
+    const rev = c.a_revisar.length
+      ? c.a_revisar.map((m) => `<span class="etiqueta revisar">${esc(m.replace("_", " "))}</span>`).join("")
+      : c.comparadas ? `<span class="etiqueta bien">nada a revisar</span>`
+      : (c.golpes ? `<span class="etiqueta">sin comparación (pocos golpes)</span>` : "");
+    return `<a class="clip" href="${encodeURIComponent(c.nombre)}/index.html">
+      <img src="${encodeURIComponent(c.nombre)}/portada.jpg" alt="" loading="lazy">
+      <div><h2>${esc(c.titulo)}</h2>
+        <div class="datos">${esc((c.golpe || "").replace("_", " "))} · ${esc(c.vista)} · ${fmt(c.fps, 0)} fps · ${fmt(c.duracion)} s</div>
+        <div class="datos">${c.golpes} golpes · detección ${fmt(c.deteccion_pct)} %</div>
+        <div class="datos">${c.volteos} frames volteados · ${c.picos} picos · ${c.avisos} avisos</div>
+        <div>${rev}</div></div></a>`;
+  }).join("") : "<p class='vacio'>No hay clips en este grupo.</p>";
+}
+document.querySelector(".filtros").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll(".filtros button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  pintar(b.dataset.g);
+});
+pintar("todos");
+})();
+</script>
+</body>
+</html>

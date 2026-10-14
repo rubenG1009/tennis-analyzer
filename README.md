@@ -181,6 +181,28 @@ mirar en el vídeo y ejercicios), que el informe presenta como hipótesis. Esos
 diagnósticos son metodología general de tenis, no están validados por un
 entrenador.
 
+## Revisar los resultados a ojo
+
+```bash
+# un clip propio (el _informe.json de analizar_clip.py)
+python scripts/revision_html.py data/processed/mi_derecha_informe.json
+# y los clips de referencia, cada profesional comparado con los demás
+python scripts/revision_html.py --referencias
+open data/revision/index.html
+```
+
+Un informe HTML por vídeo, que se abre sin servidor: el vídeo con el
+esqueleto **corregido** dibujado encima (y el original donde el corrector
+cambió algo), una línea de tiempo clicable con detección, visibilidad,
+volteos, picos, raqueta y golpes, una ficha por golpe (máxima torsión, impacto
+y final del giro) y la sesión frente al rango de los profesionales con su
+diagnóstico. Se queda en `data/revision/`, fuera del repositorio: lleva tu
+vídeo.
+
+Para sombras sin bola, el pico de velocidad de la muñeca cae en la
+preparación y los impactos hay que marcarlos a mano:
+`analizar_clip.py ... --impactos 2258,2833,3378`.
+
 ## Tests
 
 ```bash

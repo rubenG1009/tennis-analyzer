@@ -224,19 +224,25 @@ def terminacion(s, t):
     return np.nan if fin is None else float(altura[fin])
 
 
-def giro_hombros(s, t):
-    """Amplitud del giro de hombros entre la maxima torsion antes del impacto
-    y el final del giro despues, en grados. Los dos extremos se buscan en la
-    propia orientacion de los hombros, sin depender de la muneca."""
+def momentos(s, t):
+    """Frames de la maxima torsion antes del impacto y del final del giro
+    despues: (preparacion, final), o (None, None) si no se pueden situar. Se
+    buscan en la propia orientacion de los hombros, sin depender de la muneca."""
     giro = suavizar(s["hombros_giro"])
     if not np.isfinite(giro[t]):
-        return np.nan
+        return None, None
     lejos = np.abs(giro - giro[t])
-    inicio = hasta_el_extremo(lejos, t, -1, HISTERESIS_GIRO)
-    fin = hasta_el_extremo(lejos, t, +1, HISTERESIS_GIRO)
+    return (hasta_el_extremo(lejos, t, -1, HISTERESIS_GIRO),
+            hasta_el_extremo(lejos, t, +1, HISTERESIS_GIRO))
+
+
+def giro_hombros(s, t):
+    """Amplitud del giro de hombros entre la maxima torsion antes del impacto
+    y el final del giro despues, en grados (ver momentos)."""
+    inicio, fin = momentos(s, t)
     if inicio is None or fin is None:
         return np.nan
-    tramo = giro[inicio:fin + 1]
+    tramo = suavizar(s["hombros_giro"])[inicio:fin + 1]
     return float(np.nanmax(tramo) - np.nanmin(tramo))
 
 

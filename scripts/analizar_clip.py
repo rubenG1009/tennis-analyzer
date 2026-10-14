@@ -70,15 +70,15 @@ FIABILIDAD = {
 METRICAS_BRAZO = {"codo_impacto", "impacto_delante", "altura_impacto"}
 
 DESCRIPCION = {
-    "rodilla_min": ("flexion maxima de rodillas en la carga", "grados (180 = pierna recta)"),
-    "tronco_impacto": ("inclinacion del tronco en el impacto", "grados respecto a la vertical"),
-    "ancho_apoyos": ("separacion de pies en el impacto", "longitudes de torso"),
-    "alcance": ("altura de la muneca sobre la cabeza en el impacto", "longitudes de torso"),
+    "rodilla_min": ("flexión máxima de rodillas en la carga", "grados (180 = pierna recta)"),
+    "tronco_impacto": ("inclinación del tronco en el impacto", "grados respecto a la vertical"),
+    "ancho_apoyos": ("separación de pies en el impacto", "longitudes de torso"),
+    "alcance": ("altura de la muñeca sobre la cabeza en el impacto", "longitudes de torso"),
     "altura_impacto": ("altura del impacto", "0 = cadera, 1 = hombros"),
-    "codo_impacto": ("extension del codo en el impacto", "grados (180 = brazo recto)"),
+    "codo_impacto": ("extensión del codo en el impacto", "grados (180 = brazo recto)"),
     "impacto_delante": ("impacto por delante del cuerpo", "longitudes de torso"),
-    "terminacion": ("altura de la muneca al terminar el golpe", "0 = cadera, 1 = hombros"),
-    "giro_hombros": ("amplitud del giro de hombros, de la preparacion a la terminacion",
+    "terminacion": ("altura de la muñeca al terminar el golpe", "0 = cadera, 1 = hombros"),
+    "giro_hombros": ("amplitud del giro de hombros, de la preparación al final del giro",
                      "grados"),
     "peso_delante": ("cadera por delante de los pies en el impacto (transferencia del peso)",
                      "longitudes de torso"),

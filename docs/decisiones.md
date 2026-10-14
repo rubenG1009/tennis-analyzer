@@ -321,3 +321,26 @@ que un entrenador pueda revisarlos sin tocar el resto. Un test comprueba que
 la tabla sigue siendo coherente (sin duplicados, sin diagnósticos para el
 sentido que no es un problema, ninguna métrica de derecha sin cubrir).
 
+---
+
+## 2026-10-14 — La revisión visual es un HTML estático por clip, no una app
+
+**Contexto.** Casi todos los fallos encontrados hasta ahora salieron de mirar
+frames (la preparación tomada por saque, la muñeca tapada en la terminación,
+impactos que eran la preparación), y cada vez hubo que fabricar tiras de
+imágenes a mano. Hacía falta una forma de revisar cualquier clip sin eso.
+
+**Decisión.** `revision_html.py` escribe por clip una carpeta con
+`index.html` (una plantilla fija, sin dependencias), `datos.js` y el vídeo
+recodificado a H.264. El esqueleto se dibuja en el navegador sobre el vídeo a
+partir del CSV corregido, sincronizado por índice de frame; el original solo
+se guarda donde el corrector cambió algo. Los datos van en un `.js` y no en un
+`.json` porque `fetch` no funciona abriendo el fichero con doble clic.
+No es la interfaz del producto: es una herramienta de revisión.
+
+**Consecuencia.** No hay servidor, ni build, ni frontend que mantener; abrir el
+fichero basta. El vídeo de depuración de `extract_pose` sigue existiendo pero
+no sirve en el navegador (mp4v) y muestra el esqueleto sin corregir. Todo se
+queda en `data/revision/`, fuera del repositorio: los informes llevan vídeo de
+personas reales.
+
