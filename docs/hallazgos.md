@@ -449,9 +449,24 @@ muñeca y no aporta evidencia. En el impacto (230) vuelve a estar bien.
 
 No afecta a ninguna comparación (el saque no se compara: solo hay un jugador
 de referencia) ni a las métricas de impacto, pero sí a cualquier análisis de
-la preparación del saque. Arreglo posible: no usar el ancla fuera de los
-golpes, o solo cuando la muñeca se mueve rápido. Pendiente: hay que evaluarlo
-con `evaluar_esqueleto.py` antes de cambiar el corrector.
+la preparación del saque.
+
+**Arreglo probado y descartado: usar el ancla solo con la muñeca en
+movimiento.** Criterio externo: en los impactos anotados la raqueta está por
+definición en la mano dominante.
+
+| Ancla | Impactos con la dominante en la raqueta | Frames volteados | Serena 124–223 |
+|---|---|---|---|
+| siempre (actual) | 298/357 | 377 | 100 mal |
+| con alguna muñeca a ≥ 1 torso/s | 298/357 | 241 | 0 |
+
+Arregla Serena sin cambiar ningún impacto, pero quita también el volteo de la
+derecha de Roddick (629–664), que era bueno: es cámara lenta editada y la
+muñeca que golpea va a 0,57 torsos/s de vídeo, menos que la mano de Serena
+que sujeta la raqueta quieta (1,9) o la que bota la bola (9,7). Ningún umbral
+separa los dos casos. El corrector se queda como estaba; el arreglo de verdad
+pasa por saber dónde están los golpes antes de corregir, y hoy la
+segmentación va después.
 
 Otros: en el revés de Dimitrov el esqueleto parece estar sobre otra persona
 (frame 3300), pero es él con camiseta roja contra el público; las líneas
