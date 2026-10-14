@@ -423,3 +423,42 @@ de los profesionales, queda por debajo en los 7 golpes (68–91°). Rodillas,
 tronco, apoyos y codo, dentro. Altura del impacto ligeramente por encima, sin
 valor en sombra: sin bola el impacto es donde uno se lo imagina.
 
+---
+
+## 2026-10-14 — Auditoría del esqueleto con el informe de revisión
+
+Primer uso de `revision_html.py` sobre los 21 clips de referencia y los 2
+propios. Se miraron los clips con más frames volteados por el corrector
+(Serena 205, revés de Dimitrov 102, saque de Roddick 74) comprobando en cada
+caso qué muñeca queda junto a la raqueta antes y después de corregir.
+
+| Clip y frame | Antes (dcha / izda a la raqueta) | Después | Veredicto |
+|---|---|---|---|
+| Serena 40 | 2,66 / 0,84 torsos | 0,84 / 2,66 | corrección buena |
+| Serena 290 | 2,38 / 0,72 | 0,72 / 2,38 | corrección buena |
+| Roddick saque 480 | 1,03 / 0,53 | 0,53 / 1,03 | corrección buena |
+| Roddick derecha 645 | 1,28 / 0,56 | 0,56 / 1,28 | corrección buena |
+| **Serena 150–200** | modelo correcto | **volteado mal** | **error del corrector** |
+
+**El error.** Antes de sacar, Serena sujeta la raqueta con la mano
+**izquierda** mientras bota la bola (frame 120). El ancla de raqueta supone que
+la raqueta está siempre en la mano dominante, voltea el cuerpo ahí, y la
+continuidad de Viterbi arrastra el volteo 100 frames (124–223), también
+cuando la raqueta ya vuelve a la derecha pero cuelga a más de 0,3 torsos de la
+muñeca y no aporta evidencia. En el impacto (230) vuelve a estar bien.
+
+No afecta a ninguna comparación (el saque no se compara: solo hay un jugador
+de referencia) ni a las métricas de impacto, pero sí a cualquier análisis de
+la preparación del saque. Arreglo posible: no usar el ancla fuera de los
+golpes, o solo cuando la muñeca se mueve rápido. Pendiente: hay que evaluarlo
+con `evaluar_esqueleto.py` antes de cambiar el corrector.
+
+Otros: en el revés de Dimitrov el esqueleto parece estar sobre otra persona
+(frame 3300), pero es él con camiseta roja contra el público; las líneas
+verdes de la miniatura del revés de Zverev vienen del vídeo de YouTube. La
+vista anotada de `sv_serena` ("espalda") es en realidad frontal.
+
+Tu clip a 240 fps: 0 frames volteados. En el impacto las dos muñecas están
+juntas delante del cuerpo (brazo izquierdo extendido en la sombra), lo que
+en el vídeo da la impresión de un brazo cambiado; los datos dicen que no.
+
