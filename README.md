@@ -7,29 +7,51 @@ Análisis de técnica de golpes de tenis a partir de vídeo.
 
 ## Qué es
 
-El pipeline previsto, de principio a fin:
+Graba tus golpes con el móvil y obtén lo que te diría un profesor que mira
+números: cómo giras el tronco, cómo terminas, cómo cargas las piernas, cómo
+de separados tienes los pies, comparado con 6 profesionales grabados con la
+misma vista, con qué fiabilidad se ha medido cada cosa y, si algo se sale, qué
+suele haber detrás y qué ejercicios lo trabajan.
 
 ```
-vídeo -> pose estimation -> serie temporal de landmarks
-      -> segmentación de repeticiones -> métricas biomecánicas
-      -> agente LLM -> informe
+vídeo -> esqueleto (MediaPipe) -> corrección de inversiones y picos
+      -> golpes -> métricas 2D -> comparación con profesionales + diagnóstico
+      -> informe redactado (Claude) y revisión visual (HTML)
 ```
 
-La idea es partir de un clip de un jugador golpeando, reducirlo a una serie
-temporal de articulaciones, cortar esa serie en golpes individuales, calcular
-métricas sobre cada golpe y que un LLM redacte un informe técnico a partir de
-esos números.
+Todo en el plano de la imagen y con una sola cámara: no se inventa
+profundidad. Cada número lleva su fiabilidad, y lo que no se puede medir en un
+clip concreto (piernas fuera de plano, muñeca tapada, pocos golpes) sale como
+"sin dato" en vez de como un número.
+
+## En tres comandos
+
+```bash
+# 1. analizar el clip (y generar el informe visual)
+python scripts/analizar_clip.py data/raw/mi_derecha.mov --golpe derecha --vista lateral --revision
+# 2. abrir la revisión: esqueleto sobre el vídeo, golpes, tú frente a los profesionales
+open data/revision/index.html
+# 3. (opcional) informe redactado por Claude a partir de las métricas
+uv run scripts/redactar_informe.py data/processed/mi_derecha_informe.json
+```
+
+Cómo grabar para que sirva: más abajo, en [Analizar un clip propio](#analizar-un-clip-propio).
 
 ## Estado
-
-**Implementadas las cuatro etapas.**
 
 | Etapa | Estado |
 |---|---|
 | 1. Vídeo -> serie temporal de landmarks | implementada, con corrección de inversiones y evaluación de calidad |
-| 2. Segmentación de repeticiones | implementada (`segmentar_golpes.py`) |
-| 3. Métricas biomecánicas | implementada (`metricas_golpe.py`, `analizar_clip.py`) |
-| 4. Informe redactado por un LLM | implementada (`redactar_informe.py`) |
+| 2. Segmentación de golpes | implementada (`segmentar_golpes.py`); en sombras sin bola, impactos a mano (`--impactos`) |
+| 3. Métricas y comparación | 9 métricas de golpe de fondo validadas dejando fuera a cada profesional (`validar_comparacion.py`) |
+| 4. Diagnóstico e informe | diagnósticos orientativos (`diagnosticos.py`) e informe redactado (`redactar_informe.py`) |
+| Revisión visual | informe HTML por clip (`revision_html.py`) |
+
+Limitaciones actuales: solo diestros; derecha y revés comparables (el saque
+tiene un solo profesional de referencia); los diagnósticos son metodología
+general de tenis, no validados por un entrenador. Lo que se ha medido y cómo
+está en [docs/hallazgos.md](docs/hallazgos.md), y por qué se hizo así en
+[docs/decisiones.md](docs/decisiones.md).
 
 No hay backend, ni API, ni contenedores, y no está previsto añadirlos por ahora.
 
