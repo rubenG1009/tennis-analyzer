@@ -553,3 +553,35 @@ rango, 12 % de falsas alarmas. En el saque lateral, la única falsa alarma es
 el alcance de Serena (0,78 frente a 0,80–1,09); con 4 jugadores los rangos son
 el estilo de esos 4.
 
+
+---
+
+## 2026-11-09 — Combate: primeras pruebas con clips reales
+
+36 tests con un luchador sintético (jabs, patadas, pasos, guardia que baja) y
+cinco clips de YouTube en `data/raw/combate/` (fuera del repo). **Ningún clip
+real fue adecuado**, y mirar los fotogramas con el esqueleto dibujado destapó
+cinco errores, todos corregidos:
+
+| Se vio | Causa | Arreglo |
+|---|---|---|
+| Clip de un solo cuerpo sin puños: los ajustes de guardia salían como golpes | extensión medida contra el máximo del propio clip | longitud anatómica del brazo |
+| Una mano que cae de la guardia contaba como puño y ocultaba el defecto | la extensión hacia abajo pasaba el filtro | exigir extensión horizontal (salvo vista frontal) |
+| Puños detectados durante una patada | brazos de contrapeso | descartar puños dentro de una patada |
+| Ambas manos como puño en un solo golpe | giro del tronco | quedarse con la de más extensión |
+| "Retorno de guardia 0 ms" y "retorno de pierna 1500 ms" (el tope) | en la extensión máxima la mano está parada; un pie parece siempre más alto | medir el retorno por extensión; restar la postura de reposo |
+
+Además `visibilidad` pasó de la mediana conjunta al landmark menos visible: con
+cuatro puntos, dos tapados daban 0,55.
+
+**Lo que sigue sin validarse.** Ningún clip limpio de lado con golpes reales:
+- Clip de tres vistas con rejilla: no sirve (solo una vista tiene esqueleto).
+- Primer plano cortado por la cadera: el esqueleto inventa patadas; la puerta
+  de calidad las descarta.
+- Plano frontal cercano con pies cortados: el juego de pies sale como patadas y
+  los puños no se detectan. Vista frontal avisada en el informe.
+- Persona diminuta de lejos: mezcla patadas reales con saltos y pasos.
+
+Los vídeos en cámara lenta editada (como los de animación) estiran los ms: solo
+valen los propios. Pendiente: un clip de lado, cuerpo entero, 120-240 fps, con
+golpes reales, para calibrar umbrales de detección y de reglas.

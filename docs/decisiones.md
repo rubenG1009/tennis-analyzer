@@ -344,3 +344,40 @@ no sirve en el navegador (mp4v) y muestra el esqueleto sin corregir. Todo se
 queda en `data/revision/`, fuera del repositorio: los informes llevan vídeo de
 personas reales.
 
+
+---
+
+## 2026-11-09 — Análisis de combate (boxeo / K-1): perfil, reglas por nivel y puerta de calidad
+
+**Contexto.** Rubén aparcó el tenis y quiere lo mismo para K-1 y boxeo, pero con
+más inteligencia: que la persona meta su altura, peso y demás, y que el sistema
+diga qué corregir tras escanear su vídeo. Referencia comercial: Sparo (guardia,
+retorno a la guardia, giro de cadera en el cruzado); no cubre K-1 ni patadas.
+
+**Decisión.** Módulos nuevos, aparte del tenis, que reutilizan esqueleto,
+corrección y segmentación: `combate_perfil.py`, `combate_golpes.py`,
+`combate_metricas.py`, `combate_correcciones.py` y `analizar_combate.py`.
+
+- **Perfil** (altura, peso, meses de práctica, postura, flexibilidad,
+  limitaciones). La altura pasa torsos a cm y m/s con proporciones de Winter; la
+  experiencia elige los umbrales; la flexibilidad y las limitaciones cambian el
+  texto. El peso solo da un "momento" del segmento para compararse con uno
+  mismo: con vídeo 2D no se estima fuerza.
+- **Detección.** Puño por velocidad de la muñeca y patada por la del tobillo,
+  con filtros: el puño debe extenderse (frente a la longitud anatómica del
+  brazo, **no** frente al propio clip) y de forma horizontal; la patada debe
+  levantar el pie sobre su postura de reposo; un puño dentro de una patada es
+  contrapeso; dos puños simultáneos son uno.
+- **Correcciones.** Reglas con umbrales `ok`/`mal` por nivel, gravedad = exceso x
+  peso, ordenadas; cada una con causas, qué mirar y ejercicios.
+- **Puerta de calidad.** Un golpe es fiable solo si su cadena se ve (el punto
+  peor visto manda). Si una muñeca o tobillo se ve en menos del 60 % de los
+  fotogramas, o hay menos de 3 golpes fiables, el informe avisa y dice cómo
+  grabar, en vez de dar el visto bueno.
+
+**Consecuencia.** Los umbrales y diagnósticos son orientativos: no están
+calibrados con profesionales (no hay dataset público de K-1) ni validados por un
+entrenador, y el informe lo dice. Sin directo/gancho ni patada circular/frontal:
+una cámara no ve la trayectoria en profundidad.
+
+---
