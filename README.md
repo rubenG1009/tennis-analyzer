@@ -53,7 +53,42 @@ general de tenis, no validados por un entrenador. Lo que se ha medido y cómo
 está en [docs/hallazgos.md](docs/hallazgos.md), y por qué se hizo así en
 [docs/decisiones.md](docs/decisiones.md).
 
-No hay backend, ni API, ni contenedores, y no está previsto añadirlos por ahora.
+No hay backend ni API propios, ni contenedores. La revisión opcional con D1
+utiliza la API externa de Liquid AI.
+
+## Combate: revisión opcional de encuadre con D1 Ultra
+
+El análisis de combate puede consultar D1 Ultra de Liquid AI para revisar
+fotogramas: si se ve una persona de cuerpo entero, si hay varias personas y
+si la persona principal está de frente. Las respuestas son probabilidades para
+cada fotograma, **no están validadas** y no cambian las detecciones ni las
+correcciones. No permiten identificar de forma fiable al luchador ni analizar
+el movimiento completo. El análisis local sigue funcionando sin D1.
+
+Para usarlo, crea una clave en [Liquid Console](https://console.liquid.ai/) y
+configúrala en la terminal sin escribirla en el repositorio:
+
+```bash
+read -rs LIQUID_API_KEY; export LIQUID_API_KEY
+
+# Vídeo ya procesado: el nombre del JSON debe coincidir con el clip.
+python scripts/combate_d1.py data/raw/combate/mi_clip.mp4 \
+  --salida data/processed/combate/mi_clip_d1.json
+python scripts/revision_combate.py
+open data/revision_combate/index.html
+```
+
+También se puede añadir `--d1` a `scripts/analizar_combate.py` al analizar un
+vídeo, junto con sus opciones habituales de perfil. Se guardan los resultados
+en el informe y en un archivo `<clip>_d1.json` para la página. Por defecto se
+envían cinco fotogramas; `--fotogramas` en el comando independiente o
+`--d1-fotogramas` en el análisis permite elegir entre uno y diez.
+
+Al activar D1, se envían los fotogramas seleccionados a la API de Liquid AI;
+el servicio puede generar costes según su [tarifa](https://www.liquid.ai/pricing).
+Usa únicamente vídeos que puedas compartir con ese proveedor. Si la llamada
+falla, el análisis local se guarda y se muestra el error. La revisión HTML
+ignora un resultado D1 que corresponda a otro archivo de vídeo.
 
 ## Instalación
 

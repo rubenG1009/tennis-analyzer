@@ -20,6 +20,8 @@ distancia, para que el texto hable de tu cuerpo.
 
 import numpy as np
 
+import combate_referencias as cr
+
 MIN_GOLPES = 3        # golpes fiables para dar un valor de sesion
 PRIMERAS = 3          # cuantas correcciones se destacan
 BIEN, MEJORAR, PRIORITARIO = "bien", "a mejorar", "prioritario"
@@ -232,11 +234,18 @@ def altura_patadas(filas, perfil):
     return res
 
 
-def evaluar(filas, sesion, perfil, vista="lateral"):
-    """Todas las reglas evaluadas y ordenadas por gravedad (las sin dato al final)."""
+def evaluar(filas, sesion, perfil, vista="lateral", ref=None):
+    """Todas las reglas evaluadas y ordenadas por gravedad (las sin dato al final).
+    Con `ref` (combate_referencias.construir) cada regla con valor lleva ademas
+    el rango de los profesionales y si la persona esta dentro, por encima o por
+    debajo."""
     resultados = []
     for r in REGLAS:
         res = evaluar_regla(r, filas, sesion, perfil, vista)
+        rg = cr.rango(ref, r["tipo"], r["metrica"], perfil) if "valor" in res else None
+        if rg:
+            res["referencia"] = {"min": rg[0], "max": rg[1], "n_clips": rg[2],
+                                 "posicion": cr.posicion(res["valor"], rg)}
         res["que_mirar"] = r["que_mirar"]
         res["causas"] = r["causas"]
         res["ejercicios"] = r["ejercicios"]

@@ -85,7 +85,8 @@ def ventana(s, p, tope, fraccion=FRACCION_FIN):
     return a, b
 
 
-def detectar(xy, fps, lado_delantero, saltos=None, solo_horizontal=True, vis=None):
+def detectar(xy, fps, lado_delantero, saltos=None, solo_horizontal=True, vis=None,
+             detectar_patadas=True):
     """Lista de golpes ordenada por frame.
 
     Cada golpe: tipo ("puño" | "patada"), lado ("left" | "right"), rol
@@ -116,6 +117,8 @@ def detectar(xy, fps, lado_delantero, saltos=None, solo_horizontal=True, vis=Non
         rol = "delantera" if lado == lado_delantero else "trasera"
 
         for tipo, extremo in (("puño", f"{lado}_wrist"), ("patada", f"{lado}_ankle")):
+            if tipo == "patada" and not detectar_patadas:
+                continue
             punto = xy[extremo]
             v = velocidad_relativa(punto, cadera, torso)
             ok = validos & ~np.isnan(v)

@@ -14,6 +14,7 @@ import combate_correcciones as cc
 import combate_golpes as cg
 import combate_metricas as cm
 import combate_perfil as cp
+import combate_referencias as cr
 
 FPS = 120
 N = 720
@@ -386,3 +387,93 @@ def test_la_vista_frontal_avisa_de_que_puños_y_patadas_se_detectan_mal():
     xy, vis = luchador(jabs=JABS)
     assert any("Vista frontal" in n for n in ac.analizar_xy(xy, vis, FPS, PERFIL, "frontal")["notas"])
     assert not any("Vista frontal" in n for n in ac.analizar_xy(xy, vis, FPS, PERFIL, "lateral")["notas"])
+
+
+def test_en_frontal_no_se_presentan_pasos_o_patadas_como_patadas_fiables():
+    xy, vis = luchador(patadas=PATADAS)
+    frontal = ac.analizar_xy(xy, vis, FPS, PERFIL, "frontal")
+    lateral = ac.analizar_xy(xy, vis, FPS, PERFIL, "lateral")
+    assert frontal["sesion"]["patadas"] == 0
+    assert frontal["patadas"] is None
+    assert lateral["sesion"]["patadas"] > 0
+
+
+# --------------------------------------------------------------------------
+# Referencias de profesionales
+# --------------------------------------------------------------------------
+
+def clip_pro(guardia_cm, perfil=PERFIL, n=4):
+    filas = [{"tipo": "puño", "fiable": True, "guardia_otra_mano_cm": guardia_cm,
+              "retorno_guardia_ms": 300.0} for _ in range(n)]
+    return cr.medianas_clip(filas, perfil)
+
+
+def test_las_medidas_en_cm_se_guardan_en_torsos_y_valen_para_otra_altura():
+    bajo, alto = cp.Perfil(160, 60), cp.Perfil(200, 90)
+    en_torsos = cr.a_unidad_comun("guardia_otra_mano_cm", 0.3 * bajo.cm_por_torso, bajo)
+    assert en_torsos == pytest.approx(0.3)
+    assert cr.de_unidad_comun("guardia_otra_mano_cm", en_torsos, alto) == pytest.approx(0.3 * alto.cm_por_torso)
+    # los ms no dependen del cuerpo
+    assert cr.a_unidad_comun("retorno_guardia_ms", 300, alto) == 300
+
+
+def test_el_rango_necesita_minimo_de_clips_y_se_ensancha_con_margen():
+    c = [clip_pro(g) for g in (10, 20)]
+    assert cr.construir(dict(zip("ab", c))) == {}
+    clips = {n: clip_pro(g) for n, g in zip("abc", (10, 20, 30))}
+    ref = cr.construir(clips)
+    lo, hi, n = cr.rango(ref, "puño", "guardia_otra_mano_cm", PERFIL)
+    ancho = (30 - 10)
+    assert n == 3 and lo == pytest.approx(10 - cr.MARGEN * ancho) and hi == pytest.approx(30 + cr.MARGEN * ancho)
+    assert cr.posicion(40, (lo, hi, n)) == "por encima" and cr.posicion(20, (lo, hi, n)) == "dentro" \
+        and cr.posicion(0, (lo, hi, n)) == "por debajo"
+
+
+def test_un_clip_con_pocos_golpes_no_aporta_referencia():
+    filas = [{"tipo": "puño", "fiable": True, "guardia_otra_mano_cm": 20.0}] * 2
+    assert cr.medianas_clip(filas, PERFIL) == {}
+
+
+def test_la_evaluacion_incluye_el_rango_profesional_y_el_informe_lo_dice():
+    clips = {n: clip_pro(g) for n, g in zip("abc", (10, 20, 30))}
+    ref = cr.construir(clips)
+    xy, vis = luchador(jabs=JABS, guardia_baja=True)
+    r = ac.analizar_xy(xy, vis, FPS, PERFIL, "lateral", None, ref)
+    g = next(x for x in r["reglas"] if x["id"] == "guardia_puño")
+    assert g["referencia"]["posicion"] == "por encima" and g["referencia"]["n_clips"] == 3
+    assert "Profesionales de referencia" in ac.informe_markdown(r)
+    assert "referencia" not in next(x for x in ac.analizar_xy(xy, vis, FPS, PERFIL)["reglas"]
+                                    if x["id"] == "guardia_puño")
+
+
+# --------------------------------------------------------------------------
+# Tipo de puño
+# --------------------------------------------------------------------------
+
+def test_clasificar_puño_recto_gancho_y_uppercut():
+    cl = cm.clasificar_puño
+    assert cl(170, 0.1, 1.0, "delantera", "lateral") == ("recto", "jab")
+    assert cl(165, 0.1, 1.0, "trasera", "lateral") == ("recto", "cruzado")
+    assert cl(100, 0.1, 0.8, "delantera", "lateral") == ("gancho", "gancho adelantado")
+    assert cl(95, 0.6, 0.2, "trasera", "diagonal") == ("uppercut", "uppercut trasero")
+    # sube pero avanza mas: sigue siendo gancho
+    assert cl(95, 0.4, 0.9, "trasera", "lateral")[0] == "gancho"
+
+
+def test_en_vista_frontal_y_sin_codo_no_se_clasifica():
+    assert cm.clasificar_puño(170, 0.1, 1.0, "delantera", "frontal") == (None, None)
+    assert cm.clasificar_puño(float("nan"), 0.1, 1.0, "delantera", "lateral") == (None, None)
+
+
+def test_el_jab_sintetico_sale_como_jab_y_el_informe_cuenta_los_tipos():
+    xy, vis = luchador(jabs=JABS)
+    for j in JABS:  # el codo acompana: brazo estirado en linea hombro-muneca
+        t = np.arange(N)
+        pulso = bump(N, j, 16, 1.0)
+        xy["left_elbow"][:, 0] = xy["left_elbow"][:, 0] + pulso * 55
+        xy["left_elbow"][:, 1] = xy["left_elbow"][:, 1] - pulso * 52
+    r = ac.analizar_xy(xy, vis, FPS, PERFIL)
+    nombres = [g["nombre"] for g in r["golpes"] if g["tipo"] == "puño"]
+    assert nombres and set(nombres) == {"jab"}
+    assert r["sesion"]["tipos_de_puño"] == {"jab": len(JABS)}
+    assert "6 jab" in ac.informe_markdown(r)

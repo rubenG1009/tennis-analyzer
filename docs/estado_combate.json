@@ -1,0 +1,34 @@
+{
+  "hecho": [
+    "Perfil de la persona (altura, peso, meses de práctica, postura, flexibilidad, limitaciones): pasa las medidas a cm y m/s y elige cuánto se exige.",
+    "Detección de puños y patadas por velocidad de muñeca y tobillo, con filtros de extensión, horizontalidad, levante sobre el reposo, contrapeso y manos simultáneas.",
+    "Métricas por golpe: velocidad, extensión, guardia de la mano libre, retorno a la guardia, inclinación del tronco, giro de cadera, altura de patada en cm.",
+    "Reglas de corrección con umbrales por nivel, causas, qué mirar en el vídeo y ejercicios; priorizadas por gravedad.",
+    "Puerta de calidad: si una muñeca o tobillo se ve poco, o hay menos de 3 golpes fiables, el informe avisa en vez de dar el visto bueno.",
+    "Esta página: silueta sobre el vídeo (esqueleto, silueta, fondo negro), línea de tiempo con los golpes y reglas por clip."
+  ],
+  "verificado": [
+    "37 tests con un luchador sintético (jabs, patadas, pasos, guardia que baja, cuerpo cortado).",
+    "Cinco errores encontrados mirando fotogramas reales y corregidos con test (ver docs/hallazgos.md).",
+    "El filtro de visibilidad descarta golpes con el esqueleto mal puesto: los descartados en un clip de Lomachenko eran vistas de espaldas y planos con la cámara moviéndose.",
+    "La vista frontal no cuenta patadas: regresión sintética y clip 5ZbVy-Kiayc (13 posibles patadas antes, 0 después)."
+  ],
+  "abierto": [
+    "Ningún clip real limpio de lado, cuerpo entero y 120-240 fps con golpes reales: los umbrales de detección y de reglas no están calibrados.",
+    "Los umbrales y diagnósticos no los ha validado un entrenador. Lo que diga el entrenador manda.",
+    "No se distingue directo de gancho ni patada circular de frontal (una cámara no ve la profundidad).",
+    "Vistas frontales o de espaldas: los puños apenas se detectan y el juego de pies sale como patadas.",
+    "Dos luchadores en plano (sparring): no se sigue a uno concreto.",
+    "Los tiempos en ms solo valen en vídeo normal: en cámara lenta editada salen estirados.",
+    "CASO DE FALLO (clip 5ZbVy-Kiayc): vista frontal y pies cortados; se desactivaron las patadas al marcarlo frontal. Los puños también son poco fiables y quedan por revisar.",
+    "CASO DE FALLO (clip jFsigEOdliE, el 6.º): hay dos personas en plano y la silueta se pone en la otra, no en quien patea la botella. Falta elegir a la persona que golpea en vez de dejar que el modelo escoja.",
+    "Procesados 8 de 16 clips de profesionales (lote parado a mano): faltan buakaw, petrosyan, souwer_m6As/JUuM, uska, rodtang. Aún no hay rangos de referencia."
+  ],
+  "decisiones": [
+    "¿Perfil de los profesionales de referencia? Hoy se usa 180 cm, 75 kg, avanzado para ver qué detecta el sistema; para comparar de verdad habría que poner su altura real.",
+    "¿Qué corrección debe ir primero para un principiante? Hoy: guardia de la mano libre (peso 1,0) y guardia en la patada (1,0), luego % de guardia, retorno y tronco.",
+    "¿Umbral de visibilidad 0,5? Más bajo da más golpes pero con el esqueleto peor puesto (probado a ojo).",
+    "¿Añadir clasificación de golpes (jab, cruzado, gancho, uppercut) con la cámara en diagonal?",
+    "¿Informe redactado por Claude como en tenis (etapa 4), con ejercicios elegidos de la lista?"
+  ]
+}

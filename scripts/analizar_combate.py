@@ -29,6 +29,7 @@ import combate_correcciones as cc  # noqa: E402
 import combate_golpes as cg  # noqa: E402
 import combate_metricas as cm  # noqa: E402
 import combate_perfil as cp  # noqa: E402
+import combate_referencias as cr  # noqa: E402
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VISTAS = ("lateral", "diagonal", "frontal")
@@ -75,15 +76,16 @@ def calidad(sesion, n_golpes, visible=None):
     return motivos
 
 
-def analizar_xy(xy, vis, fps, perfil, vista="lateral", saltos=None):
+def analizar_xy(xy, vis, fps, perfil, vista="lateral", saltos=None, ref=None):
     """Del esqueleto (dict nombre -> (n, 2) en pixeles) al resultado completo.
 
     Funcion pura (sin disco ni video): es la que se testea.
     """
     golpes = cg.detectar(xy, fps, perfil.lado_delantero, saltos,
-                         solo_horizontal=vista != "frontal", vis=vis)
-    filas, sesion = cm.medir(xy, vis, fps, perfil, golpes)
-    reglas = cc.evaluar(filas, sesion, perfil, vista)
+                         solo_horizontal=vista != "frontal", vis=vis,
+                         detectar_patadas=vista != "frontal")
+    filas, sesion = cm.medir(xy, vis, fps, perfil, golpes, vista)
+    reglas = cc.evaluar(filas, sesion, perfil, vista, ref)
     patadas = cc.altura_patadas(filas, perfil)
     return {
         "perfil": perfil.a_dict() | {"nivel": perfil.nivel,
@@ -93,8 +95,8 @@ def analizar_xy(xy, vis, fps, perfil, vista="lateral", saltos=None):
         "calidad": calidad(sesion, len(filas), visibles(vis)),
         "patadas": patadas,
         "notas": cc.notas_perfil(perfil, bool(patadas)) + (
-            ["Vista frontal: los puños van hacia la cámara y apenas se detectan, y el juego de "
-             "pies puede salir como patadas. Para puños y patadas, graba de lado o en diagonal."]
+            ["Vista frontal: no se detectan patadas porque pueden confundirse con juego de "
+             "pies; los puños hacia la cámara también se detectan mal. Graba de lado o en diagonal."]
             if vista == "frontal" else []),
         "aviso": AVISO,
     }
@@ -102,6 +104,12 @@ def analizar_xy(xy, vis, fps, perfil, vista="lateral", saltos=None):
 
 def _num(x, dec=1):
     return "-" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{x:.{dec}f}"
+
+
+def _tipos(s):
+    t = s.get("tipos_de_puño") or {}
+    return " Puños: " + ", ".join(f"{n} {k}" for k, n in sorted(t.items(), key=lambda x: -x[1])) + "." \
+        if t else ""
 
 
 def informe_markdown(r, video=""):
@@ -112,7 +120,7 @@ def informe_markdown(r, video=""):
           f"postura {p['postura']}, disciplina {p['disciplina']}, vista {r['vista']}.", ""]
     L += [f"**Qué se ha visto:** {s['puños']} puños y {s['patadas']} patadas en "
           f"{s['duracion_s']:.0f} s ({s['combinaciones']} combinaciones, la más larga de "
-          f"{s['combinacion_mas_larga']}). Guardia arriba el "
+          f"{s['combinacion_mas_larga']}){_tipos(s)}. Guardia arriba el "
           f"{_num(s['guardia_arriba_pct'], 0)} % del tiempo. "
           f"Golpes con dato fiable: {s['fiables']} de {len(r['golpes'])}.", ""]
     if r["calidad"]:
@@ -120,6 +128,17 @@ def informe_markdown(r, video=""):
               + "; ".join(r["calidad"]) + ". " + CONSEJOS_GRABACION, ""]
     for n in r["notas"]:
         L += [f"> {n}", ""]
+
+    if r.get("d1"):
+        import combate_d1
+        L += ["## Revisión opcional de encuadre con D1 Ultra", "",
+              "Probabilidades por fotograma; son orientativas, no validadas, y no modifican "
+              "las métricas ni las correcciones. Solo describen los fotogramas muestreados.", ""]
+        for f in r["d1"]["fotogramas"]:
+            valores = ", ".join(f"{combate_d1.ETIQUETAS[k]}: {v:.0%}"
+                                for k, v in f["probabilidades"].items())
+            L.append(f"- {f['segundos']:.2f} s: {valores}")
+        L.append("")
 
     reglas = [x for x in r["reglas"] if x["estado"] in (cc.PRIORITARIO, cc.MEJORAR)]
     L += ["## Qué corregir, por orden", ""]
@@ -135,6 +154,10 @@ def informe_markdown(r, video=""):
             f"mediana de {x['n']} golpes; {x['golpes_fuera']} fuera del objetivo"
         L += [f"- **Tu valor:** {_num(x['valor'])} {u} ({base}). **Objetivo para tu nivel:** "
               f"{_num(x['umbral_ok'])} {u}; prioritario a partir de {_num(x['umbral_mal'])}."]
+        if "referencia" in x:
+            rf = x["referencia"]
+            L += [f"- **Profesionales de referencia:** {_num(rf['min'])} a {_num(rf['max'])} {u.split(' ')[0]} "
+                  f"({rf['n_clips']} clips de sombra y entrenamiento); tú estás {rf['posicion']} del rango."]
         if "peor_t_s" in x:
             L += [f"- **Dónde mirar:** el golpe más claro está en el segundo {x['peor_t_s']}."]
         L += [f"- **Qué comprobar en el vídeo:** {x['que_mirar']}",
@@ -190,9 +213,15 @@ def main():
     parser.add_argument("--limitacion", action="append", default=[],
                         help="repetible: 'rodilla derecha', 'hombro izquierdo'...")
     parser.add_argument("--vista", choices=VISTAS, default="lateral")
+    parser.add_argument("--referencias",
+                        default=os.path.join(RAIZ, "references", "combate_referencias.json"),
+                        help="rangos de los profesionales (se ignora si no existe)")
     parser.add_argument("--out-dir", default=os.path.join(RAIZ, "data", "processed"))
     parser.add_argument("--reusar", action="store_true",
                         help="No vuelve a extraer landmarks si ya existe el CSV")
+    parser.add_argument("--d1", action="store_true",
+                        help="Envía fotogramas a Liquid AI para una revisión opcional del encuadre")
+    parser.add_argument("--d1-fotogramas", type=int, choices=range(1, 11), default=5)
     args = parser.parse_args()
 
     if args.perfil:
@@ -227,8 +256,17 @@ def main():
         print(f"AVISO: {fps:.0f} fps. A esta velocidad el brazo y la pierna salen movidos en "
               "el golpe; graba a 120-240 fps si puedes.")
 
-    r = analizar_xy(xy, vis, fps, perfil, args.vista, saltos)
+    ref = cr.cargar(args.referencias) if os.path.isfile(args.referencias) else None
+    r = analizar_xy(xy, vis, fps, perfil, args.vista, saltos, ref)
     r["video"] = args.video
+    error_d1 = None
+    if args.d1:
+        import combate_d1
+        try:
+            r["d1"] = combate_d1.revisar(args.video, args.d1_fotogramas)
+            combate_d1.guardar(r["d1"], f"{pre}_d1.json")
+        except (combate_d1.ErrorD1, OSError) as e:
+            error_d1 = str(e)
     ruta_json, ruta_md = f"{pre}_combate.json", f"{pre}_combate.md"
     with open(ruta_json, "w", encoding="utf-8") as f:
         json.dump(r, f, indent=2, ensure_ascii=False, default=lambda o: None if np.isnan(o) else float(o))
@@ -237,6 +275,8 @@ def main():
         f.write(md)
     print(md)
     print(f"\nInforme -> {ruta_md}\nDatos   -> {ruta_json}")
+    if error_d1:
+        sys.exit(f"D1 no se ha podido ejecutar: {error_d1}. Se ha guardado el análisis local.")
 
 
 if __name__ == "__main__":

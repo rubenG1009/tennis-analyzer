@@ -23,7 +23,7 @@ import numpy as np
 from combate_golpes import (BRAZO_EN_TORSOS, CADENA, UMBRAL_VIS, combinaciones,
                             levante_reposo, torso_suave, visibilidad)
 from evaluar_esqueleto import punto_medio
-from metricas_golpe import angulo_fuera_del_plano
+from metricas_golpe import angulo, angulo_fuera_del_plano
 
 RETORNO_MAX_S = 1.5       # si no vuelve a la guardia en este tiempo, se da este valor
 TOLERANCIA_EXTENSION = 0.15  # del brazo estirado sobre la extension de reposo para dar el puño por recogido
@@ -32,6 +32,27 @@ GUARDIA_ALTA_MAX = 0.7    # torsos bajo la nariz: mas abajo, la mano esta fuera 
 ZONA_BAJA_MAX = 0.50      # fraccion de la altura: la patada llega al muslo
 ZONA_MEDIA_MAX = 0.78     # ... al torso; por encima, a la cabeza
 TIPO_PUÑO, TIPO_PATADA = "puño", "patada"
+CODO_RECTO = 150          # grados: con el codo casi estirado es un recto (jab o cruzado)
+UPPERCUT_MIN = 0.3        # torsos que la muñeca debe subir (y mas que avanzar) para ser uppercut
+
+
+def clasificar_puño(codo_deg, subida, avance, rol, vista):
+    """Nombre del puño: jab/cruzado (recto), gancho o uppercut, con su lado.
+
+    Con el codo casi estirado es un recto (delantero = jab, trasero = cruzado).
+    Con el codo doblado, es uppercut si la muñeca sube mas de UPPERCUT_MIN
+    torsos y mas de lo que avanza, y gancho si no. Subida y avance en torsos.
+    En vista frontal el codo no se ve (el brazo va hacia la camara): None.
+    Funcion pura.
+    """
+    if vista == "frontal" or codo_deg is None or np.isnan(codo_deg):
+        return None, None
+    lado = "adelantado" if rol == "delantera" else "trasero"
+    if codo_deg >= CODO_RECTO:
+        return "recto", "jab" if rol == "delantera" else "cruzado"
+    if subida > UPPERCUT_MIN and subida > avance:
+        return "uppercut", f"uppercut {lado}"
+    return "gancho", f"gancho {lado}"
 
 
 def zona_patada(altura_pct):
@@ -95,7 +116,7 @@ def _retorno(serie_ok, desde, fps):
     return RETORNO_MAX_S * 1000
 
 
-def medir_golpe(g, xy, vis, s, perfil):
+def medir_golpe(g, xy, vis, s, perfil, vista="lateral"):
     fps, torso = s["fps"], s["torso"]
     lado = g["lado"]
     otro = "left" if lado == "right" else "right"
@@ -127,6 +148,12 @@ def medir_golpe(g, xy, vis, s, perfil):
         ext = np.linalg.norm(muneca - xy[f"{lado}_shoulder"], axis=1) / (torso * BRAZO_EN_TORSOS)
         vuelto = np.nan_to_num(ext, nan=9e9) <= np.nanmedian(ext) + TOLERANCIA_EXTENSION
         fila["retorno_guardia_ms"] = _retorno(vuelto, ref, fps)
+        codo = angulo(xy[f"{lado}_shoulder"], xy[f"{lado}_elbow"], muneca)
+        fila["codo_deg"] = _med(codo, ref - 1, ref + 1)
+        subida = (muneca[a, 1] - muneca[ref, 1]) / torso[ref]
+        avance = abs(muneca[ref, 0] - muneca[a, 0]) / torso[ref]
+        fila["variante"], fila["nombre"] = clasificar_puño(fila["codo_deg"], subida, avance,
+                                                         g["rol"], vista)
         # el giro se mide con la cadera y los hombros: si no se ven, no hay dato
         vis_giro = visibilidad(vis, ["left_hip", "right_hip", "left_shoulder", "right_shoulder"], a, b)
         for clave, serie in (("giro_cadera_deg", "giro_cadera"), ("giro_hombros_deg", "giro_hombros")):
@@ -145,7 +172,7 @@ def medir_golpe(g, xy, vis, s, perfil):
         fila["guardia_en_patada_cm"] = _pct(peor, a, b) * cm
     if not fila["fiable"]:
         for k, v in list(fila.items()):
-            if k not in ("tipo", "lado", "rol", "pico", "t_s", "fiable", "zona"):
+            if k not in ("tipo", "lado", "rol", "pico", "t_s", "fiable", "zona", "variante", "nombre"):
                 fila[k] = np.nan
     return fila
 
@@ -168,7 +195,12 @@ def medir_sesion(golpes, filas, xy, s, fps):
     guardia_pct = float(ok[valido].mean() * 100) if valido.any() else np.nan
     minutos = valido.sum() / fps / 60
     grupos = combinaciones(golpes, fps)
+    nombres = {}
+    for f in filas:
+        if f.get("nombre"):
+            nombres[f["nombre"]] = nombres.get(f["nombre"], 0) + 1
     return {
+        "tipos_de_puño": nombres,
         "frames_validos_pct": float(valido.mean() * 100),
         "duracion_s": float(n / fps),
         "guardia_arriba_pct": guardia_pct,
@@ -181,7 +213,7 @@ def medir_sesion(golpes, filas, xy, s, fps):
     }
 
 
-def medir(xy, vis, fps, perfil, golpes):
+def medir(xy, vis, fps, perfil, golpes, vista="lateral"):
     s = preparar(xy, fps)
-    filas = [medir_golpe(g, xy, vis, s, perfil) for g in golpes]
+    filas = [medir_golpe(g, xy, vis, s, perfil, vista) for g in golpes]
     return filas, medir_sesion(golpes, filas, xy, s, fps)

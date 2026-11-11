@@ -585,3 +585,38 @@ cuatro puntos, dos tapados daban 0,55.
 Los vídeos en cámara lenta editada (como los de animación) estiran los ms: solo
 valen los propios. Pendiente: un clip de lado, cuerpo entero, 120-240 fps, con
 golpes reales, para calibrar umbrales de detección y de reglas.
+
+---
+
+## 2026-11-09 (2) — Combate: casos de fallo que se conservan para aprender de ellos
+
+Rubén revisó la página de silueta sobre los 6 clips de prueba y señaló dos que
+están mal. Se dejan en `data/raw/combate/` y `data/processed/combate/` como
+casos de regresión: cualquier cambio en la detección o la elección de persona
+debe volver a pasarlos por la página y mirarlos.
+
+| Clip | Qué falla | Causa probable | Qué haría falta |
+|---|---|---|---|
+| `5ZbVy-Kiayc` (2.º) | No se ve bien en la página; plano frontal cercano, pies cortados, las "patadas" son juego de pies | vista frontal + cuerpo cortado; la página lo recodificó con el lado mayor vertical | comprobar la recodificación en vertical; en frontal, no detectar patadas por levante |
+| `jFsigEOdliE` (6.º) | La silueta está en otra persona, no en quien patea la botella | MediaPipe con `num_poses=1` elige a quien le parece; hay dos personas | elegir al sujeto: la persona con más movimiento de extremos o la más cercana, y mantenerla entre fotogramas |
+
+Los otros cuatro clips, según Rubén, "han salido bastante bien".
+
+---
+
+## 2026-11-10 — Vista frontal y revisión de D1 Ultra
+
+El clip `5ZbVy-Kiayc` se declara frontal tras la revisión manual. En esa vista
+se desactiva la detección de patadas: las 13 que mostraba eran posibles pasos;
+esto también deja fuera patadas reales, por lo que no equivale a detectarlas.
+Se avisa de que los puños frontales siguen siendo poco fiables. Se comprobó el
+cambio con un caso sintético y en la página. El visor limita la altura de los
+vídeos verticales y se exportaron los vídeos que faltaban de los clips ya
+procesados. La elección de persona en `jFsigEOdliE` sigue pendiente.
+
+D1 Ultra (Liquid AI) acepta texto e imágenes y responde preguntas con
+probabilidades; no se ha comprobado entrada directa de vídeo. Podría evaluarse
+con secuencias de fotogramas etiquetadas para decidir si el encuadre muestra el
+cuerpo entero, si hay varias personas o qué vista presenta. No se ha ejecutado:
+no había una clave configurada. Cualquier uso posterior necesita comprobar su
+precisión con ejemplos anotados antes de intervenir en las medidas.
